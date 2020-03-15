@@ -70,13 +70,12 @@
  void RoutingExperiment::Run (double txp)
  {
    m_txp = txp;
-   int nWifis = 3;
+   int nWifis = 14;
 
    double TotalTime = 200.0;
    std::string rate ("2048bps");
    std::string phyMode ("DsssRate11Mbps");
-   // int nodeSpeed = 20;
-   // int nodePause = 0;
+
 
    Config::SetDefault  ("ns3::OnOffApplication::PacketSize",StringValue ("64"));
    Config::SetDefault ("ns3::OnOffApplication::DataRate",  StringValue (rate));
@@ -107,29 +106,42 @@
    wifiMac.SetType ("ns3::AdhocWifiMac");
    NetDeviceContainer adhocDevices = wifi.Install (wifiPhy, wifiMac, nodes);
 
+
+
+
    MobilityHelper mobilityAdhoc;
-   int64_t streamIndex = 5; // used to get consistent mobility across scenarios
-
-   ObjectFactory pos;
-   pos.SetTypeId ("ns3::RandomRectanglePositionAllocator");
-   pos.Set ("X", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=150.0]"));
-   pos.Set ("Y", StringValue ("ns3::UniformRandomVariable[Min=0.0|Max=150.0]"));
-
-   Ptr<PositionAllocator> taPositionAlloc = pos.Create ()->GetObject<PositionAllocator> ();
-   streamIndex += taPositionAlloc->AssignStreams (streamIndex);
-
-   // std::stringstream ssSpeed;
-   // ssSpeed << "ns3::UniformRandomVariable[Min=0.0|Max=" << nodeSpeed << "]";
-   // std::stringstream ssPause;
-   // ssPause << "ns3::ConstantRandomVariable[Constant=" << nodePause << "]";
-   // mobilityAdhoc.SetMobilityModel ("ns3::RandomWaypointMobilityModel",
-   //                                 "Speed", StringValue (ssSpeed.str ()),
-   //                                 "Pause", StringValue (ssPause.str ()),
-   //                                 "PositionAllocator", PointerValue (taPositionAlloc));
-   mobilityAdhoc.SetPositionAllocator (taPositionAlloc);
+   mobilityAdhoc.SetPositionAllocator ("ns3::GridPositionAllocator",
+                                "MinX", DoubleValue (0.0),
+                                "MinY", DoubleValue (0.0),
+                                "DeltaX", DoubleValue (500),
+                                "DeltaY", DoubleValue (500),
+                                "GridWidth", UintegerValue (5),
+                                "LayoutType", StringValue ("RowFirst"));
+   mobilityAdhoc.SetMobilityModel ("ns3::ConstantVelocityMobilityModel");
    mobilityAdhoc.Install (nodes);
-   streamIndex += mobilityAdhoc.AssignStreams (nodes, streamIndex);
-   NS_UNUSED (streamIndex); // From this point, streamIndex is unused
+int jump=1,jump1=0,jump2=1;
+   for (uint n=0 ; n < nodes.GetN() ; n++)
+    {
+      if(n<4){
+       Ptr<ConstantVelocityMobilityModel> mob = nodes.Get(n)->GetObject<ConstantVelocityMobilityModel>();
+       mob->SetVelocity(Vector(0, 0, 0));
+       mob->SetPosition(Vector(jump, 1.15, 0));
+       jump++;
+
+     }
+     if(n>=4&&n<9){
+      Ptr<ConstantVelocityMobilityModel> mob = nodes.Get(n)->GetObject<ConstantVelocityMobilityModel>();
+      mob->SetVelocity(Vector(0, 0, 0));
+      mob->SetPosition(Vector(jump1, 2.3, 0));
+         jump1+=2;
+    }
+    if(n>=9){
+     Ptr<ConstantVelocityMobilityModel> mob = nodes.Get(n)->GetObject<ConstantVelocityMobilityModel>();
+     mob->SetVelocity(Vector(0, 0, 0));
+     mob->SetPosition(Vector(jump2, 3.3, 0));
+      jump2++;
+   }
+    }
 
 
    DsrHelper dsr;
@@ -151,8 +163,8 @@
    onoff1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.0]"));
 
 
-   for (int i = 0; i < 3 ; i++)
-     {
+   // for (int i = 0; i < 3 ; i++)
+   //   {
        Ptr<Socket> sink = SetupPacketReceive (adhocInterfaces.GetAddress (i), nodes.Get (i));
 
        AddressValue remoteAddress (InetSocketAddress (adhocInterfaces.GetAddress (i), port));
@@ -160,10 +172,9 @@
 
        Ptr<UniformRandomVariable> var = CreateObject<UniformRandomVariable> ();
        ApplicationContainer temp = onoff1.Install (nodes.Get (i));
-       temp.Start (Seconds (var->GetValue (100.0,101.0)));
+       temp.Start (Seconds (var->GetValue (0.0,1.0)));
        temp.Stop (Seconds (TotalTime));
-
-     }
+    // }
 
    Simulator::Stop (Seconds (TotalTime));
    AnimationInterface anim("anim1.xml");
