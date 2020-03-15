@@ -60,13 +60,6 @@
  }
 
 
- int main (int argc, char *argv[])
- {
-   RoutingExperiment experiment;
-   double txp = 7.5;
-   experiment.Run (txp);
- }
-
  void RoutingExperiment::Run (double txp)
  {
    m_txp = txp;
@@ -163,8 +156,8 @@ int jump=1,jump1=0,jump2=1;
    onoff1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.0]"));
 
 
-   // for (int i = 0; i < 3 ; i++)
-   //   {
+    for (int i = 0; i < 3 ; i++)
+      {
        Ptr<Socket> sink = SetupPacketReceive (adhocInterfaces.GetAddress (i), nodes.Get (i));
 
        AddressValue remoteAddress (InetSocketAddress (adhocInterfaces.GetAddress (i), port));
@@ -174,10 +167,22 @@ int jump=1,jump1=0,jump2=1;
        ApplicationContainer temp = onoff1.Install (nodes.Get (i));
        temp.Start (Seconds (var->GetValue (0.0,1.0)));
        temp.Stop (Seconds (TotalTime));
-    // }
+     }
 
    Simulator::Stop (Seconds (TotalTime));
    AnimationInterface anim("anim1.xml");
    Simulator::Run ();
    Simulator::Destroy ();
+ }
+
+
+
+
+
+
+ int main (int argc, char *argv[])
+ {
+   RoutingExperiment experiment;
+   double txp = 0.1;
+   experiment.Run (txp);
  }
