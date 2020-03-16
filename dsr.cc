@@ -27,6 +27,8 @@
    uint32_t bytesTotal;
    uint32_t packetsReceived;
    double m_txp;
+
+   //stam
  };
 
  RoutingExperiment::RoutingExperiment ()
@@ -117,20 +119,17 @@ int jump=1,jump1=0,jump2=1;
     {
       if(n<4){
        Ptr<ConstantVelocityMobilityModel> mob = nodes.Get(n)->GetObject<ConstantVelocityMobilityModel>();
-       mob->SetVelocity(Vector(0, 0, 0));
        mob->SetPosition(Vector(jump, 1.15, 0));
        jump++;
 
      }
      if(n>=4&&n<9){
       Ptr<ConstantVelocityMobilityModel> mob = nodes.Get(n)->GetObject<ConstantVelocityMobilityModel>();
-      mob->SetVelocity(Vector(0, 0, 0));
       mob->SetPosition(Vector(jump1, 2.3, 0));
          jump1+=2;
     }
     if(n>=9){
      Ptr<ConstantVelocityMobilityModel> mob = nodes.Get(n)->GetObject<ConstantVelocityMobilityModel>();
-     mob->SetVelocity(Vector(0, 0, 0));
      mob->SetPosition(Vector(jump2, 3.3, 0));
       jump2++;
    }
