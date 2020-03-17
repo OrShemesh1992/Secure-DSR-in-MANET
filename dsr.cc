@@ -35,7 +35,6 @@
  {
  }
 
-
  void RoutingExperiment::ReceivePacket (Ptr<Socket> socket)
  {
    Ptr<Packet> packet;
@@ -46,7 +45,6 @@
        packetsReceived += 1;
      }
  }
-
 
 
  Ptr<Socket> RoutingExperiment::SetupPacketReceive (Ipv4Address addr, Ptr<Node> node)
@@ -60,6 +58,9 @@
    return sink;
  }
 
+
+ void RoutingExperiment::Run ()
+ {
 
    int nWifis = 14;
 
@@ -90,6 +91,7 @@
    wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
                                  "DataMode",StringValue (phyMode),
                                  "ControlMode",StringValue (phyMode));
+
    wifiMac.SetType ("ns3::AdhocWifiMac");
    NetDeviceContainer adhocDevices = wifi.Install (wifiPhy, wifiMac, nodes);
 
@@ -111,17 +113,20 @@ int jump=1,jump1=0,jump2=1;
     {
       if(n<4){
        Ptr<ConstantVelocityMobilityModel> mob = nodes.Get(n)->GetObject<ConstantVelocityMobilityModel>();
+       mob->SetVelocity(Vector(0, 0, 0));
        mob->SetPosition(Vector(jump, 1.15, 0));
        jump++;
 
      }
      if(n>=4&&n<9){
       Ptr<ConstantVelocityMobilityModel> mob = nodes.Get(n)->GetObject<ConstantVelocityMobilityModel>();
+      mob->SetVelocity(Vector(0, 0, 0));
       mob->SetPosition(Vector(jump1, 2.3, 0));
          jump1+=2;
     }
     if(n>=9){
      Ptr<ConstantVelocityMobilityModel> mob = nodes.Get(n)->GetObject<ConstantVelocityMobilityModel>();
+     mob->SetVelocity(Vector(0, 0, 0));
      mob->SetPosition(Vector(jump2, 3.3, 0));
       jump2++;
    }
@@ -165,9 +170,6 @@ int jump=1,jump1=0,jump2=1;
    Simulator::Run ();
    Simulator::Destroy ();
  }
-
-
-
 
 
 
