@@ -45,12 +45,14 @@
        bytesTotal += packet->GetSize ();
        packetsReceived += 1;
      }
+std::cout<<bytesTotal;
  }
 
 
  Ptr<Socket> RoutingExperiment::SetupPacketReceive (Ipv4Address addr, Ptr<Node> node)
  {
    TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
+
    Ptr<Socket> sink = Socket::CreateSocket (node, tid);
    InetSocketAddress local = InetSocketAddress (addr, port);
    sink->Bind (local);
@@ -158,8 +160,9 @@ int jump=1,jump1=0,jump2=1;
 
     for (int i = 0; i < 3 ; i++)
       {
-       Ptr<Socket> sink = SetupPacketReceive (adhocInterfaces.GetAddress (i), nodes.Get (i));
 
+       Ptr<Socket> sink = SetupPacketReceive (adhocInterfaces.GetAddress (i), nodes.Get (i));
+  std::cout<<sink;
        AddressValue remoteAddress (InetSocketAddress (adhocInterfaces.GetAddress (i), port));
        onoff1.SetAttribute ("Remote", remoteAddress);
 
