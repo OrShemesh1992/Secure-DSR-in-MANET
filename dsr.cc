@@ -17,7 +17,7 @@
  {
  public:
    RoutingExperiment (); //constructor
-   void Run (double txp);
+   void Run ();
 
  private:
    Ptr<Socket> SetupPacketReceive (Ipv4Address addr, Ptr<Node> node);
@@ -26,7 +26,6 @@
    uint32_t port;
    uint32_t bytesTotal;
    uint32_t packetsReceived;
-   double m_txp;
  };
 
  RoutingExperiment::RoutingExperiment ()
@@ -62,9 +61,9 @@ std::cout<<bytesTotal;
  }
 
 
- void RoutingExperiment::Run (double txp)
+ void RoutingExperiment::Run ()
  {
-   m_txp = txp;
+
    int nWifis = 14;
 
    double TotalTime = 200.0;
@@ -94,9 +93,6 @@ std::cout<<bytesTotal;
    wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
                                  "DataMode",StringValue (phyMode),
                                  "ControlMode",StringValue (phyMode));
-
-   wifiPhy.Set ("TxPowerStart",DoubleValue (txp));
-   wifiPhy.Set ("TxPowerEnd", DoubleValue (txp));
 
    wifiMac.SetType ("ns3::AdhocWifiMac");
    NetDeviceContainer adhocDevices = wifi.Install (wifiPhy, wifiMac, nodes);
@@ -180,12 +176,8 @@ int jump=1,jump1=0,jump2=1;
 
 
 
-
-
-
  int main (int argc, char *argv[])
  {
    RoutingExperiment experiment;
-   double txp = 0.1;
-   experiment.Run (txp);
+   experiment.Run ();
  }
