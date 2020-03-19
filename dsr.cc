@@ -157,7 +157,7 @@ int jump=1,jump1=0,jump2=1;
   for (uint i=0 ; i < nodes.GetN() ; i++)
       {
 
-      Ptr<Socket> sink = SetupPacketReceive (adhocInterfaces.GetAddress (i), nodes.Get (i));
+    //  Ptr<Socket> sink = SetupPacketReceive (adhocInterfaces.GetAddress (i), nodes.Get (i));
 //  std::cout<<sink;
        AddressValue remoteAddress (InetSocketAddress (adhocInterfaces.GetAddress (i), port));
        onoff1.SetAttribute ("Remote", remoteAddress);
