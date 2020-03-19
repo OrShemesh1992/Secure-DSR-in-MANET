@@ -35,30 +35,30 @@
  {
  }
 
- void RoutingExperiment::ReceivePacket (Ptr<Socket> socket)
- {
-   Ptr<Packet> packet;
-   Address senderAddress;
-   while ((packet = socket->RecvFrom (senderAddress)))
-     {
-       bytesTotal += packet->GetSize ();
-       packetsReceived += 1;
-     }
-std::cout<<bytesTotal;
- }
-
-
- Ptr<Socket> RoutingExperiment::SetupPacketReceive (Ipv4Address addr, Ptr<Node> node)
- {
-   TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
-
-   Ptr<Socket> sink = Socket::CreateSocket (node, tid);
-   InetSocketAddress local = InetSocketAddress (addr, port);
-   sink->Bind (local);
-   sink->SetRecvCallback (MakeCallback (&RoutingExperiment::ReceivePacket, this));
-
-   return sink;
- }
+//  void RoutingExperiment::ReceivePacket (Ptr<Socket> socket)
+//  {
+//    Ptr<Packet> packet;
+//    Address senderAddress;
+//    while ((packet = socket->RecvFrom (senderAddress)))
+//      {
+//        bytesTotal += packet->GetSize ();
+//        packetsReceived += 1;
+//      }
+// std::cout<<bytesTotal;
+//  }
+//
+//
+//  Ptr<Socket> RoutingExperiment::SetupPacketReceive (Ipv4Address addr, Ptr<Node> node)
+//  {
+//    TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
+//
+//    Ptr<Socket> sink = Socket::CreateSocket (node, tid);
+//    InetSocketAddress local = InetSocketAddress (addr, port);
+//    sink->Bind (local);
+//    sink->SetRecvCallback (MakeCallback (&RoutingExperiment::ReceivePacket, this));
+//
+//    return sink;
+//  }
 
 
  void RoutingExperiment::Run ()
@@ -153,20 +153,20 @@ int jump=1,jump1=0,jump2=1;
    onoff1.SetAttribute ("OnTime", StringValue ("ns3::ConstantRandomVariable[Constant=1.0]"));
    onoff1.SetAttribute ("OffTime", StringValue ("ns3::ConstantRandomVariable[Constant=0.0]"));
 
-
-  for (uint i=0 ; i < nodes.GetN() ; i++)
-      {
-
-    //  Ptr<Socket> sink = SetupPacketReceive (adhocInterfaces.GetAddress (i), nodes.Get (i));
-//  std::cout<<sink;
-       AddressValue remoteAddress (InetSocketAddress (adhocInterfaces.GetAddress (i), port));
-       onoff1.SetAttribute ("Remote", remoteAddress);
-
-       Ptr<UniformRandomVariable> var = CreateObject<UniformRandomVariable> ();
-       ApplicationContainer temp = onoff1.Install (nodes.Get (i));
-       temp.Start (Seconds (var->GetValue (0.0,1.0)));
-       temp.Stop (Seconds (TotalTime));
-     }
+//
+//   for (uint i=0 ; i < nodes.GetN() ; i++)
+//       {
+//
+//     //  Ptr<Socket> sink = SetupPacketReceive (adhocInterfaces.GetAddress (i), nodes.Get (i));
+// //  std::cout<<sink;
+//        AddressValue remoteAddress (InetSocketAddress (adhocInterfaces.GetAddress (i), port));
+//        onoff1.SetAttribute ("Remote", remoteAddress);
+//
+//        Ptr<UniformRandomVariable> var = CreateObject<UniformRandomVariable> ();
+//        ApplicationContainer temp = onoff1.Install (nodes.Get (i));
+//        temp.Start (Seconds (var->GetValue (0.0,1.0)));
+//        temp.Stop (Seconds (TotalTime));
+//      }
 
    Simulator::Stop (Seconds (TotalTime));
    AnimationInterface anim("anim1.xml");
