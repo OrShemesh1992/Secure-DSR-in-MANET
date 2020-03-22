@@ -14,7 +14,7 @@
 #include <cmath>
 
 using namespace ns3;
-
+using namespace dsr;
 int packetsSent = 0;
 int packetsReceived = 0;
 
@@ -115,6 +115,21 @@ int jump=1,jump1=0,jump2=1;
   Ipv4AddressHelper address;
   address.SetBase ("10.0.0.0", "255.0.0.0");
   interfaces = address.Assign (devices);
+
+
+Ptr<Packet> packet=Create<Packet> (1024);
+Ptr<Ipv4Route> route=0;
+DsrRouting dsrrouting;
+dsrrouting.Send(packet,
+                   interfaces.GetAddress(0),
+                   interfaces.GetAddress(13),
+                  2,route);
+
+// DsrRouting::Send (Ptr<Packet> packet,
+//                   Ipv4Address source,
+//                   Ipv4Address destination,
+//                   uint8_t protocol,
+//                   Ptr<Ipv4Route> route)
 
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
 
