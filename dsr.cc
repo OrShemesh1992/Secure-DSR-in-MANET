@@ -12,7 +12,7 @@
 #include <vector>
 #include <string>
 #include <cmath>
-
+#include "ns3/ip-l4-protocol.h"
 using namespace ns3;
 using namespace dsr;
 int packetsSent = 0;
@@ -117,33 +117,43 @@ int jump=1,jump1=0,jump2=1;
   interfaces = address.Assign (devices);
 
 
-Ptr<Packet> packet=Create<Packet> (1024);
-Ptr<Ipv4Route> route=0;
-DsrRouting dsrrouting;
-dsrrouting.Send(packet,
-                   interfaces.GetAddress(0),
-                   interfaces.GetAddress(13),
-                  2,route);
 
-// DsrRouting::Send (Ptr<Packet> packet,
-//                   Ipv4Address source,
-//                   Ipv4Address destination,
-//                   uint8_t protocol,
-//                   Ptr<Ipv4Route> route)
+
+
+
+// //Ptr<ns3::dsr::DsrRouting> dsrrout13=dsr.Create (nodes.Get(13));
+// ObjectFactory m_agentFactory;
+// m_agentFactory.SetTypeId ("ns3::dsr::DsrRouting");
+// Ptr<ns3::dsr::DsrRouting> agent = m_agentFactory.Create<ns3::dsr::DsrRouting> ();
+// // deal with the downtargets, install UdpL4Protocol, TcpL4Protocol, Icmpv4L4Protocol
+// Ptr<UdpL4Protocol> udp = nodes.Get(0)->GetObject<UdpL4Protocol> ();
+// agent->SetDownTarget (udp->GetDownTarget ());
+// udp->SetDownTarget (MakeCallback (&dsr::DsrRouting::Send, agent));
+//
+// //DsrRouting::PacketNewRoute ( packet,interfaces.GetAddress(0), interfaces.GetAddress(13), 48);
+// //                             Ipv4Address source,
+// //                             Ipv4Address destination,
+// //                             uint8_t protocol)
+
 
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
 
   TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
-  Ptr<Socket> recvSink = Socket::CreateSocket (nodes.Get (size-1), tid);
-  InetSocketAddress local = InetSocketAddress (Ipv4Address::GetAny (), 8080);
+  Ptr<Socket> recvSink = Socket::CreateSocket (nodes.Get (0), tid);
+  InetSocketAddress local = InetSocketAddress (interfaces.GetAddress (1,0), 8080);
   recvSink->Bind (local);
   recvSink->SetRecvCallback (MakeCallback (&ReceivePacket));
 
-  Ptr<Socket> source = Socket::CreateSocket (nodes.Get (0), tid);
+  Ptr<Socket> source = Socket::CreateSocket (nodes.Get (13), tid);
   InetSocketAddress remote = InetSocketAddress (interfaces.GetAddress (size-1,0), 8080);
   source->Connect (remote);
 
   Simulator::Schedule (Seconds (1), &GenerateTraffic, source, packetSize, totalPackets, interPacketInterval);
+
+
+
+
+
 
   std::cout << "Starting simulation for " << totalTime << " s ...\n";
 
