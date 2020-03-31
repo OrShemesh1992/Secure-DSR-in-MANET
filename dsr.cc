@@ -28,17 +28,18 @@ void ReceivePacket (Ptr<Socket> socket)
     }
 }
 
-static void GenerateTraffic (Ptr<Socket> socket, uint32_t pktSize,
+static void GenerateTraffic (Ptr<Socket> socket,Ipv4Address addr, uint32_t pktSize,
                              uint32_t pktCount, Time pktInterval )
 {
   if (pktCount > 0)
     {
-      socket->Send (Create<Packet> (pktSize));
+
+      socket->SendTo (Create<Packet> (pktSize),5,addr);
       packetsSent++;
       std::cout<<"Packet sent - "<<packetsSent<<std::endl;
 
       Simulator::Schedule (pktInterval, &GenerateTraffic,
-                           socket, pktSize,pktCount-1, pktInterval);
+                           socket,addr, pktSize,pktCount-1, pktInterval);
     }
   else
     {
@@ -138,17 +139,22 @@ int jump=1,jump1=0,jump2=1;
 
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
 
+
+
   TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
   Ptr<Socket> recvSink = Socket::CreateSocket (nodes.Get (0), tid);
-  InetSocketAddress local = InetSocketAddress (interfaces.GetAddress (1,0), 8080);
+  InetSocketAddress local = InetSocketAddress (interfaces.GetAddress(0), 80);
   recvSink->Bind (local);
   recvSink->SetRecvCallback (MakeCallback (&ReceivePacket));
 
-  Ptr<Socket> source = Socket::CreateSocket (nodes.Get (13), tid);
-  InetSocketAddress remote = InetSocketAddress (interfaces.GetAddress (size-1,0), 8080);
-  source->Connect (remote);
 
-  Simulator::Schedule (Seconds (1), &GenerateTraffic, source, packetSize, totalPackets, interPacketInterval);
+      Ptr<Socket> source = Socket::CreateSocket (nodes.Get (1), tid);
+   InetSocketAddress remote = InetSocketAddress (interfaces.GetAddress (1, 0), 80);
+   source->Connect (remote);
+
+
+
+  Simulator::Schedule (Seconds (1), &GenerateTraffic, source,interfaces.GetAddress(0), packetSize, totalPackets, interPacketInterval);
 
 
 
