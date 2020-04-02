@@ -23,23 +23,24 @@ void ReceivePacket (Ptr<Socket> socket)
   Ptr<Packet> packet;
   while ((packet = socket->Recv ()))
     {
+    std::cout<< "socket Receive - " <<socket->Recv () <<" Received packet"<<packet<<std::endl;
 	  packetsReceived++;
       std::cout<<"Received packet - "<<packetsReceived<<" and Size is "<<packet->GetSize ()<<" Bytes."<<std::endl;
     }
 }
 
-static void GenerateTraffic (Ptr<Socket> socket,Ipv4Address addr, uint32_t pktSize,
+static void GenerateTraffic (Ptr<Socket> socket, uint32_t pktSize,
                              uint32_t pktCount, Time pktInterval )
 {
   if (pktCount > 0)
     {
-
-      socket->SendTo (Create<Packet> (pktSize),5,addr);
+      socket->Send (Create<Packet> (pktSize));
       packetsSent++;
       std::cout<<"Packet sent - "<<packetsSent<<std::endl;
-
+ReceivePacket ( socket);
       Simulator::Schedule (pktInterval, &GenerateTraffic,
-                           socket,addr, pktSize,pktCount-1, pktInterval);
+                           socket, pktSize,pktCount-1, pktInterval);
+
     }
   else
     {
@@ -137,24 +138,22 @@ int jump=1,jump1=0,jump2=1;
 // //                             uint8_t protocol)
 
 
-  Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
-
-
-
   TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
   Ptr<Socket> recvSink = Socket::CreateSocket (nodes.Get (0), tid);
-  InetSocketAddress local = InetSocketAddress (interfaces.GetAddress(0), 80);
+  InetSocketAddress local = InetSocketAddress (Ipv4Address::GetAny (), 80);
   recvSink->Bind (local);
   recvSink->SetRecvCallback (MakeCallback (&ReceivePacket));
 
+  Ptr<Socket> source = Socket::CreateSocket (nodes.Get (1), tid);
+  InetSocketAddress remote = InetSocketAddress (Ipv4Address ("255.255.255.255"), 80);
+  source->SetAllowBroadcast (true);
+  source->Connect (remote);
 
-      Ptr<Socket> source = Socket::CreateSocket (nodes.Get (1), tid);
-   InetSocketAddress remote = InetSocketAddress (interfaces.GetAddress (1, 0), 80);
-   source->Connect (remote);
+  // Tracing
+  wifiPhy.EnablePcap ("wifi-simple-infra", devices);
 
-
-
-  Simulator::Schedule (Seconds (1), &GenerateTraffic, source,interfaces.GetAddress(0), packetSize, totalPackets, interPacketInterval);
+  // Output what we are doing
+  Simulator::Schedule (Seconds (1), &GenerateTraffic, source, packetSize, totalPackets, interPacketInterval);
 
 
 
