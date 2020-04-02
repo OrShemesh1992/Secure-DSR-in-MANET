@@ -31,6 +31,7 @@
 #include "ns3/yans-wifi-helper.h"
 #include "ns3/netanim-module.h"
 #include "ns3/wifi-radio-energy-model-helper.h"
+#include "ns3/dsr-module.h"
 
 using namespace ns3;
 
@@ -257,6 +258,11 @@ main (int argc, char *argv[])
   /** Internet stack **/
   InternetStackHelper internet;
   internet.Install (networkNodes);
+
+  DsrMainHelper dsrMain;
+  DsrHelper dsr;
+  dsrMain.Install (dsr, networkNodes);
+
 
   Ipv4AddressHelper ipv4;
   NS_LOG_INFO ("Assign IP Addresses.");

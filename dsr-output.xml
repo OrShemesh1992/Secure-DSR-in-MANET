@@ -80,4 +80,8 @@
 <ncs ncId="0" n="RemainingEnergy" t="DOUBLE" />
 <pr uId="1" fId="0" fbTx="0.00057" />
 <wpr uId="1" tId="1" fbRx="0.000570003" lbRx="0" />
+<pr uId="2" fId="0" fbTx="0.03" />
+<wpr uId="2" tId="1" fbRx="0.030000003" lbRx="0" />
+<pr uId="3" fId="1" fbTx="0.037800003" />
+<wpr uId="3" tId="0" fbRx="0.037800006" lbRx="0" />
 </anim>
