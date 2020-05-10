@@ -13,49 +13,50 @@
 #include <string>
 #include <cmath>
 #include "ns3/ip-l4-protocol.h"
+#include "ns3/udp-client-server-helper.h"
 using namespace ns3;
 using namespace dsr;
-int packetsSent = 0;
-int packetsReceived = 0;
+//int packetsSent = 0;
+//int packetsReceived = 0;
 
-void ReceivePacket (Ptr<Socket> socket)
-{
-  Ptr<Packet> packet;
-  while ((packet = socket->Recv ()))
-    {
-    std::cout<< "socket Receive - " <<socket->Recv () <<" Received packet"<<packet<<std::endl;
-	  packetsReceived++;
-      std::cout<<"Received packet - "<<packetsReceived<<" and Size is "<<packet->GetSize ()<<" Bytes."<<std::endl;
-    }
-}
+// void ReceivePacket (Ptr<Socket> socket)
+// {
+//   Ptr<Packet> packet;
+//   while ((packet = socket->Recv ()))
+//     {
+//     std::cout<< "socket Receive - " <<socket->Recv () <<" Received packet"<<packet<<std::endl;
+// 	  packetsReceived++;
+//       std::cout<<"Received packet - "<<packetsReceived<<" and Size is "<<packet->GetSize ()<<" Bytes."<<std::endl;
+//     }
+// }
 
-static void GenerateTraffic (Ptr<Socket> socket, uint32_t pktSize,
-                             uint32_t pktCount, Time pktInterval )
-{
-  if (pktCount > 0)
-    {
-      socket->Send (Create<Packet> (pktSize));
-      packetsSent++;
-      std::cout<<"Packet sent - "<<packetsSent<<std::endl;
-ReceivePacket ( socket);
-      Simulator::Schedule (pktInterval, &GenerateTraffic,
-                           socket, pktSize,pktCount-1, pktInterval);
-
-    }
-  else
-    {
-      socket->Close ();
-    }
-}
+// static void GenerateTraffic (Ptr<Socket> socket, uint32_t pktSize,
+//                              uint32_t pktCount, Time pktInterval )
+// {
+//   if (pktCount > 0)
+//     {
+//       socket->Send (Create<Packet> (pktSize));
+//       packetsSent++;
+//       std::cout<<"Packet sent - "<<packetsSent<<std::endl;
+// ReceivePacket ( socket);
+//       Simulator::Schedule (pktInterval, &GenerateTraffic,
+//                            socket, pktSize,pktCount-1, pktInterval);
+//
+//     }
+//   else
+//     {
+//       socket->Close ();
+//     }
+// }
 
 int main(int argc, char **argv)
 {
   uint32_t size=14;
   double step=100;
-  double totalTime=100;
+  //double totalTime=100;
 
-  int packetSize = 1024;
-  int totalPackets = totalTime-1;
+//  int packetSize = 1024;
+  //int totalPackets = totalTime-1;
   double interval = 1.0;
   Time interPacketInterval = Seconds (interval);
 
@@ -117,50 +118,27 @@ int jump=1,jump1=0,jump2=1;
   Ipv4AddressHelper address;
   address.SetBase ("10.0.0.0", "255.0.0.0");
   interfaces = address.Assign (devices);
+//********************UdpServerHelper************************
+    UdpServerHelper udpServerHelper(80);
+		ApplicationContainer apps = udpServerHelper.Install(nodes.Get(0));
+		Ptr<UdpServer> udpServer = udpServerHelper.GetServer();
+		UdpClientHelper udpClientHelper(Ipv4Address("10.0.0.1"), 80);
+		udpClientHelper.SetAttribute("Interval", TimeValue(Seconds(7)));
+		udpClientHelper.SetAttribute("MaxPackets", UintegerValue(100000000));
 
-
-
-
-
-
-// //Ptr<ns3::dsr::DsrRouting> dsrrout13=dsr.Create (nodes.Get(13));
-// ObjectFactory m_agentFactory;
-// m_agentFactory.SetTypeId ("ns3::dsr::DsrRouting");
-// Ptr<ns3::dsr::DsrRouting> agent = m_agentFactory.Create<ns3::dsr::DsrRouting> ();
-// // deal with the downtargets, install UdpL4Protocol, TcpL4Protocol, Icmpv4L4Protocol
-// Ptr<UdpL4Protocol> udp = nodes.Get(0)->GetObject<UdpL4Protocol> ();
-// agent->SetDownTarget (udp->GetDownTarget ());
-// udp->SetDownTarget (MakeCallback (&dsr::DsrRouting::Send, agent));
-//
-// //DsrRouting::PacketNewRoute ( packet,interfaces.GetAddress(0), interfaces.GetAddress(13), 48);
-// //                             Ipv4Address source,
-// //                             Ipv4Address destination,
-// //                             uint8_t protocol)
-
-
-  TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
-  Ptr<Socket> recvSink = Socket::CreateSocket (nodes.Get (0), tid);
-  InetSocketAddress local = InetSocketAddress (Ipv4Address::GetAny (), 80);
-  recvSink->Bind (local);
-  recvSink->SetRecvCallback (MakeCallback (&ReceivePacket));
-
-  Ptr<Socket> source = Socket::CreateSocket (nodes.Get (1), tid);
-  InetSocketAddress remote = InetSocketAddress (Ipv4Address ("255.255.255.255"), 80);
-  source->SetAllowBroadcast (true);
-  source->Connect (remote);
-
+		uint32_t sendingNode = 1;
+		apps.Add(udpClientHelper.Install(nodes.Get(sendingNode)));
+		apps.Start(Seconds(60));
+		apps.Stop(Seconds(301));
+//********************finish************************
   // Tracing
   wifiPhy.EnablePcap ("wifi-simple-infra", devices);
 
   // Output what we are doing
-  Simulator::Schedule (Seconds (1), &GenerateTraffic, source, packetSize, totalPackets, interPacketInterval);
+  //Simulator::Schedule (Seconds (1), &GenerateTraffic, source, packetSize, totalPackets, interPacketInterval);
 
 
-
-
-
-
-  std::cout << "Starting simulation for " << totalTime << " s ...\n";
+  //std::cout << "Starting simulation for " << totalTime << " s ...\n";
 
   AnimationInterface anim ("Secure-DSR-in-MANET/dsr-output.xml");
 
@@ -169,7 +147,7 @@ int jump=1,jump1=0,jump2=1;
   flowmon = flowmonHelper.InstallAll ();
 
 
-  Simulator::Stop (Seconds (totalTime));
+  Simulator::Stop (Seconds (301));
   Simulator::Run ();
   flowmon->SetAttribute("DelayBinWidth", DoubleValue(0.01));
   flowmon->SetAttribute("JitterBinWidth", DoubleValue(0.01));
@@ -179,8 +157,8 @@ int jump=1,jump1=0,jump2=1;
   Simulator::Destroy ();
 
   std::cout<<"\n\n***** OUTPUT *****\n\n";
-  std::cout<<"Total Packets sent = "<<packetsSent<<std::endl;
-  std::cout<<"Total Packets received = "<<packetsReceived<<std::endl;
-  std::cout<<"Packet delivery ratio = "<<(float)(packetsReceived/packetsSent)*100<<" %"<<std::endl;
+  //std::cout<<"Total Packets sent = "<<packetsSent<<std::endl;
+  //std::cout<<"Total Packets received = "<<packetsReceived<<std::endl;
+  //std::cout<<"Packet delivery ratio = "<<(float)(packetsReceived/packetsSent)*100<<" %"<<std::endl;
 
 }
