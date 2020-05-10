@@ -34,7 +34,7 @@
 #include "ns3/dsr-module.h"
 
 using namespace ns3;
-
+using namespace dsr;
 NS_LOG_COMPONENT_DEFINE ("EnergyExample");
 
 static inline std::string
@@ -167,7 +167,7 @@ main (int argc, char *argv[])
   NodeContainer networkNodes;
   networkNodes.Add (c.Get (0));
   networkNodes.Add (c.Get (1));
-
+networkNodes.Add (c.Get (2));
   // The below set of helpers will help us to put together the wifi NICs we want
   WifiHelper wifi;
   if (verbose)
@@ -241,74 +241,82 @@ main (int argc, char *argv[])
 
   /** Energy Model **/
   /***************************************************************************/
-  /* energy source */
-  BasicEnergySourceHelper basicSourceHelper;
-  // configure energy source
-  basicSourceHelper.Set ("BasicEnergySourceInitialEnergyJ", DoubleValue (0.1));
-  // install source
-  EnergySourceContainer sources = basicSourceHelper.Install (c);
-  /* device energy model */
-  WifiRadioEnergyModelHelper radioEnergyHelper;
-  // configure radio energy model
-  radioEnergyHelper.Set ("TxCurrentA", DoubleValue (0.0174));
-  // install device model
-  DeviceEnergyModelContainer deviceModels = radioEnergyHelper.Install (devices, sources);
+  // /* energy source */
+  // BasicEnergySourceHelper basicSourceHelper;
+  // // configure energy source
+  // basicSourceHelper.Set ("BasicEnergySourceInitialEnergyJ", DoubleValue (0.1));
+  // // install source
+  // EnergySourceContainer sources = basicSourceHelper.Install (c);
+  // /* device energy model */
+  // WifiRadioEnergyModelHelper radioEnergyHelper;
+  // // configure radio energy model
+  // radioEnergyHelper.Set ("TxCurrentA", DoubleValue (0.0174));
+  // // install device model
+  // DeviceEnergyModelContainer deviceModels = radioEnergyHelper.Install (devices, sources);
   /***************************************************************************/
 
   /** Internet stack **/
   InternetStackHelper internet;
   internet.Install (networkNodes);
 
-  DsrMainHelper dsrMain;
-  DsrHelper dsr;
-  dsrMain.Install (dsr, networkNodes);
-
-
+  // DsrMainHelper dsrMain;
+  // DsrHelper dsr;
+  // dsrMain.Install (dsr, networkNodes);
+ObjectFactory m_agentFactory;
+m_agentFactory.SetTypeId ("ns3::dsr::DsrRouting");
+Ptr<DsrRouting> dsrRouting =m_agentFactory.Create<ns3::dsr::DsrRouting> ();
+Ptr<UdpL4Protocol> udp = networkNodes.Get (2)->GetObject<UdpL4Protocol> ();
+dsrRouting->SetDownTarget (udp->GetDownTarget ());
+udp->SetDownTarget (MakeCallback (&dsr::DsrRouting::Send, dsrRouting));
+networkNodes.Get (2)->AggregateObject (dsrRouting);
+dsrRouting->SetNode (networkNodes.Get (2));
+// void Send (Ptr<Packet> packet, Ipv4Address source,
+//            Ipv4Address destination, uint8_t protocol, Ptr<Ipv4Route> route);
   Ipv4AddressHelper ipv4;
   NS_LOG_INFO ("Assign IP Addresses.");
   ipv4.SetBase ("10.1.1.0", "255.255.255.0");
   Ipv4InterfaceContainer i = ipv4.Assign (devices);
 
-  TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
-  Ptr<Socket> recvSink = Socket::CreateSocket (networkNodes.Get (1), tid);  // node 1, receiver
-  InetSocketAddress local = InetSocketAddress (Ipv4Address::GetAny (), 80);
-  recvSink->Bind (local);
-  recvSink->SetRecvCallback (MakeCallback (&ReceivePacket));
-
-  Ptr<Socket> source = Socket::CreateSocket (networkNodes.Get (0), tid);    // node 0, sender
-  InetSocketAddress remote = InetSocketAddress (Ipv4Address::GetBroadcast (), 80);
-  source->SetAllowBroadcast (true);
-  source->Connect (remote);
+  // TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
+  // Ptr<Socket> recvSink = Socket::CreateSocket (networkNodes.Get (1), tid);  // node 1, receiver
+  // InetSocketAddress local = InetSocketAddress (Ipv4Address::GetAny (), 80);
+  // recvSink->Bind (local);
+  // recvSink->SetRecvCallback (MakeCallback (&ReceivePacket));
+  //
+  // Ptr<Socket> source = Socket::CreateSocket (networkNodes.Get (0), tid);    // node 0, sender
+  // InetSocketAddress remote = InetSocketAddress (Ipv4Address::GetBroadcast (), 80);
+  // source->SetAllowBroadcast (true);
+  // source->Connect (remote);
 
   /** connect trace sources **/
   /***************************************************************************/
   // all sources are connected to node 1
   // energy source
-  Ptr<BasicEnergySource> basicSourcePtr = DynamicCast<BasicEnergySource> (sources.Get (1));
-  basicSourcePtr->TraceConnectWithoutContext ("RemainingEnergy", MakeCallback (&RemainingEnergy));
-  // device energy model
-  Ptr<DeviceEnergyModel> basicRadioModelPtr =
-    basicSourcePtr->FindDeviceEnergyModels ("ns3::WifiRadioEnergyModel").Get (0);
-  NS_ASSERT (basicRadioModelPtr != NULL);
-  basicRadioModelPtr->TraceConnectWithoutContext ("TotalEnergyConsumption", MakeCallback (&TotalEnergy));
+  // Ptr<BasicEnergySource> basicSourcePtr = DynamicCast<BasicEnergySource> (sources.Get (1));
+  // basicSourcePtr->TraceConnectWithoutContext ("RemainingEnergy", MakeCallback (&RemainingEnergy));
+  // // device energy model
+  // Ptr<DeviceEnergyModel> basicRadioModelPtr =
+  //   basicSourcePtr->FindDeviceEnergyModels ("ns3::WifiRadioEnergyModel").Get (0);
+  // NS_ASSERT (basicRadioModelPtr != NULL);
+  // basicRadioModelPtr->TraceConnectWithoutContext ("TotalEnergyConsumption", MakeCallback (&TotalEnergy));
   /***************************************************************************/
 
 
   /** simulation setup **/
   // start traffic
-  Simulator::Schedule (Seconds (startTime), &GenerateTraffic, source, PpacketSize,
-                       networkNodes.Get (0), numPackets, interPacketInterval);
+//  Simulator::Schedule (Seconds (startTime), &GenerateTraffic, source, PpacketSize,
+//                       networkNodes.Get (0), numPackets, interPacketInterval);
   AnimationInterface anim ("Secure-DSR-in-MANET/dsr-output.xml");
   Simulator::Stop (Seconds (10.0));
   Simulator::Run ();
 
-  for (DeviceEnergyModelContainer::Iterator iter = deviceModels.Begin (); iter != deviceModels.End (); iter ++)
-    {
-      double energyConsumed = (*iter)->GetTotalEnergyConsumption ();
-      NS_LOG_UNCOND ("End of simulation (" << Simulator::Now ().GetSeconds ()
-                     << "s) Total energy consumed by radio = " << energyConsumed << "J");
-      NS_ASSERT (energyConsumed <= 0.1);
-    }
+  // for (DeviceEnergyModelContainer::Iterator iter = deviceModels.Begin (); iter != deviceModels.End (); iter ++)
+  //   {
+  //     double energyConsumed = (*iter)->GetTotalEnergyConsumption ();
+  //     NS_LOG_UNCOND ("End of simulation (" << Simulator::Now ().GetSeconds ()
+  //                    << "s) Total energy consumed by radio = " << energyConsumed << "J");
+  //     NS_ASSERT (energyConsumed <= 0.1);
+  //   }
 
   Simulator::Destroy ();
 
