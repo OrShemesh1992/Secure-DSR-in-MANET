@@ -131,16 +131,6 @@ for (uint n=0 ; n < c.GetN() ; n++)
    jump2++;
 }
  }
-  // MobilityHelper mobilityAdhoc;
-  // mobilityAdhoc.SetPositionAllocator ("ns3::GridPositionAllocator",
-  //                              "MinX", DoubleValue (0.0),
-  //                              "MinY", DoubleValue (0.0),
-  //                              "DeltaX", DoubleValue (distance),
-  //                              "DeltaY", DoubleValue (distance),
-  //                              "GridWidth", UintegerValue (5),
-  //                              "LayoutType", StringValue ("RowFirst"));
-  // mobilityAdhoc.SetMobilityModel ("ns3::ConstantVelocityMobilityModel");
-  // mobilityAdhoc.Install (c);
   //***************************END********************************
 
 
