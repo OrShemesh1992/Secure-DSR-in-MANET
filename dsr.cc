@@ -143,79 +143,20 @@ for (uint n=0 ; n < c.GetN() ; n++)
   // mobilityAdhoc.Install (c);
   //***************************END********************************
 
+
 //***************************DSR********************************
-//   DsrHelper dsr;
-//   DsrMainHelper dsrMain;
+  DsrHelper dsr;
+  DsrMainHelper dsrMain;
 
   InternetStackHelper internet;
   internet.Install (c);
-//  dsrMain.Install (dsr, c);
+  dsrMain.Install (dsr, c);
 
   Ipv4AddressHelper ipv4;
   NS_LOG_INFO ("Assign IP Addresses.");
   ipv4.SetBase ("10.1.1.0", "255.255.255.0");
   Ipv4InterfaceContainer i = ipv4.Assign (devices);
 //***************************END********************************
-//***************************working****************************
-for (size_t i = 1; i < c.GetN(); i++) {
-     ObjectFactory m_agentFactory;
-     m_agentFactory.SetTypeId ("ns3::dsr::DsrRouting");
-     Ptr<ns3::dsr::DsrRouting> agent = m_agentFactory.Create<ns3::dsr::DsrRouting> ();
-     // deal with the downtargets, install UdpL4Protocol, TcpL4Protocol, Icmpv4L4Protocol
-     Ptr<UdpL4Protocol> udp = c.Get (i)->GetObject<UdpL4Protocol> ();
-     agent->SetDownTarget (udp->GetDownTarget ());
-     udp->SetDownTarget (MakeCallback (&dsr::DsrRouting::Send, agent));
-     Ptr<TcpL4Protocol> tcp = c.Get (i)->GetObject<TcpL4Protocol> ();
-     tcp->SetDownTarget (MakeCallback (&dsr::DsrRouting::Send, agent));
-     Ptr<Icmpv4L4Protocol> icmp = c.Get (i)->GetObject<Icmpv4L4Protocol> ();
-     icmp->SetDownTarget (MakeCallback (&dsr::DsrRouting::Send, agent));
-     c.Get (i)->AggregateObject (agent);
-     agent->SetNode (c.Get (i));
-}
-ObjectFactory m_agentFactory;
-  m_agentFactory.SetTypeId ("ns3::dsr::DsrRouting");
-   Ptr<ns3::dsr::DsrRouting> agent = m_agentFactory.Create<ns3::dsr::DsrRouting> ();
-   // deal with the downtargets, install UdpL4Protocol, TcpL4Protocol, Icmpv4L4Protocol
-   Ptr<UdpL4Protocol> udp = c.Get (0)->GetObject<UdpL4Protocol> ();
-   agent->SetDownTarget (udp->GetDownTarget ());
-   udp->SetDownTarget (MakeCallback (&dsr::DsrRouting::Send, agent));
-   Ptr<TcpL4Protocol> tcp = c.Get (0)->GetObject<TcpL4Protocol> ();
-   tcp->SetDownTarget (MakeCallback (&dsr::DsrRouting::Send, agent));
-   Ptr<Icmpv4L4Protocol> icmp = c.Get (0)->GetObject<Icmpv4L4Protocol> ();
-   icmp->SetDownTarget (MakeCallback (&dsr::DsrRouting::Send, agent));
-   c.Get (0)->AggregateObject (agent);
-
-   Ptr<ns3::dsr::DsrRouteCache> routeCache= CreateObject<ns3::dsr::DsrRouteCache> ();
-  // std::vector<Ipv4Address> m_finalRoute;
-   // m_finalRoute.push_back(i.GetAddress (4));
-   // m_finalRoute.push_back(i.GetAddress (5));
-   // m_finalRoute.push_back(i.GetAddress (6));
-
-// DsrRouteCacheEntry::DsrRouteCacheEntry toSource (m_finalRoute,i.GetAddress (6),interPacketInterval);
-//bool isRouteInCache = agent->LookupRoute (i.GetAddress (5),toPrev);
-//std::cout << "success: "<<std::boolalpha<< isRouteInCache<<endl;
-//DsrRouteCacheEntry::IP_VECTOR ip = toPrev.GetVector (); // The route from our own route cache to dst
-//PrintVector (ip);
-//std::vector<Ipv4Address> saveRoute (nodeList);
-//PrintVector (saveRoute);
-//bool areThereDuplicates = IfDuplicates (ip,saveRoute);
-    // std::map<Ipv4Address, routeEntryVector> m_sortedRoutes;
-// bool AddRoute (DsrRouteCacheEntry & rt);
-//DsrRouteCacheEntry::DsrRouteCacheEntry (IP_VECTOR const  & ip, Ipv4Address dst, Time exp)
-
-//bool flag1 =routeCache->AddRoute(toPrev);
-// agent->SetRouteCache (routeCache);
-// bool flag=routeCache->UpdateRouteEntry(i.GetAddress (5));
-// std::cout << "success: "<<std::boolalpha<< flag << " " << '\n';
-//
-// agent->SetNode (c.Get (0));
-//  Ptr<ns3::dsr::RouteCache> routeCache = CreateObject<ns3::dsr::RouteCache> ();
-//  Ptr<ns3::dsr::RreqTable> rreqTable = CreateObject<ns3::dsr::RreqTable> ();
- //dsr->SetRouteCache (routeCache);
-//  dsr->SetRequestTable (rreqTable);
-//dsrSpecific->SetNode (c.Get (1));
-//  node->AggregateObject (routeCache);
-//  node->AggregateObject (rreqTable);
 //***************************socket********************************
   TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
   Ptr<Socket> recvSink = Socket::CreateSocket (c.Get (destNode), tid);
