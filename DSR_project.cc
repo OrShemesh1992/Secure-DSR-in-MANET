@@ -28,7 +28,10 @@ class Experiment{
 
 //functions of the class
 public:
-Experiment ();
+std::string m_protocolName;
+string toplogyName;
+std::string m_CSVfileName;
+Experiment (uint32_t protocol, uint32_t topology);
 void ReceivePacket (Ptr<Socket> socket);
 static void GenerateTraffic (Ptr<Socket> socket, uint32_t pktSize,
                              uint32_t pktCount, Time pktInterval );
@@ -43,7 +46,7 @@ double circleEquasion(double x, double y, double center);
 double randomDouble(double low, double high);
 void square (NodeContainer c);
 void random(NodeContainer c);
-
+void setNames();
 
 //members of the class
 private:
@@ -54,9 +57,7 @@ private:
   uint32_t numNodes;  // by default, 5x5
   map<int, int> packetsRecievedPerNode;
   double interval;// seconds
-  std::string m_CSVfileName;
   int recvPackets;
-  std::string m_protocolName;
   uint32_t m_protocol;
   int position;
   vector<int> destNodes;
@@ -64,27 +65,61 @@ private:
   std::vector<Ptr<Socket>> recieves;
   std::vector<Ptr<Socket>> sources;
 
-
-
-
 };
 
 //initalize constructor
-Experiment::Experiment (){
+Experiment::Experiment (uint32_t protocol, uint32_t topology){
     distance = 1000;  // m
     packetSize = 1000; // bytes
     numPackets = 2000;
     numNodes = 50;  // by default, 5x5
     interval = 0.5; // seconds
-    m_CSVfileName = "Dsr_project.csv";
+    //m_CSVfileName = "Dsr_project.csv";
     recvPackets = 0;
-    m_protocol = 3; // 1-olsr, 2-aodv, 3-DSR
-    position = 3; //1-lines, 2-circle, 3-grid, 4-square, 5 -random
+    m_protocol = protocol; // 1-olsr, 2-aodv, 3-DSR
+    position = topology; //1-lines, 2-circle, 3-grid, 4-square, 5 -random
     destNodes = {1, 5 ,7 ,9};
     sourceNodes = { 3, 6, 8, 10};
+    setNames();
 }
 
 //writing data to the csv file
+void Experiment::setNames(){
+  switch (position)
+    {
+    case 1:
+      toplogyName = "lines";
+      break;
+    case 2:
+      toplogyName = "circle";
+      break;
+    case 3:
+      toplogyName = "grid";
+      break;
+    case 4:
+      toplogyName = "square";
+      break;
+    case 5:
+      toplogyName = "random";
+      break;
+    default:
+      NS_FATAL_ERROR ("No such pos:" << position);
+    }
+    switch (m_protocol)
+      {
+        case 1:
+          m_protocolName = "OLSR";
+          break;
+        case 2:
+          m_protocolName = "AODV";
+          break;
+        case 3:
+          m_protocolName = "DSR";
+          break;
+        default:
+          NS_FATAL_ERROR ("No such protocol:" << m_protocol);
+      }
+}
 
  void
  Experiment::CheckThroughput ()
@@ -113,7 +148,7 @@ Experiment:: ReceivePacket (Ptr<Socket> socket)
      {
        int node = socket->GetNode()->GetId();
        packetsRecievedPerNode[node]++;
-       std::cout <<node<< " received a packet" << '\n';
+       //std::cout <<node<< " received a packet" << '\n';
      }
 }
 
@@ -149,26 +184,30 @@ Experiment::CommandSetup (int argc, char **argv)
 
 int main (int argc, char *argv[])
 {
-  for (size_t i = 0; i < 1; i++) {
+  for (size_t i = 1; i <= 3; i++) {
+    for (size_t j = 1; j <= 5; j++) {
+      for (size_t k = 0; k < 1; k++) {
     /* code */
 
-  Experiment experiment;
-  std::string CSVfileName = experiment.CommandSetup (argc,argv);
-
-//writing the coloums to csv file
-  std::ofstream out (CSVfileName.c_str ());
-  out << "seconds," <<
-  "NumberOfNodes," <<
-  "distance," <<
-  "NumOfPackets," <<
-  "RecievedPackets," <<
-  "Protocol," <<
-  std::endl;
-  out.close ();
-experiment.Run (CSVfileName);
-//std::cout <<"round"<<i+1<<":  ***********************************" <<recvPackets << '\n';
-
-}
+        Experiment experiment(i,j);
+        //std::string CSVfileName = experiment.CommandSetup (argc,argv);
+        string fileName =  experiment.m_protocolName + " " + experiment.toplogyName+".csv";
+        experiment.m_CSVfileName = fileName;
+      //writing the coloums to csv file
+        std::ofstream out (fileName.c_str ());
+        out << "seconds," <<
+        "NumberOfNodes," <<
+        "distance," <<
+        "NumOfPackets," <<
+        "RecievedPackets," <<
+        "Protocol," <<
+        std::endl;
+        out.close ();
+        experiment.Run (fileName);
+      //std::cout <<"round"<<i+1<<":  ***********************************" <<recvPackets << '\n';
+      }
+    }
+  }
 }
 
 void Experiment::lines (NodeContainer c){
@@ -250,7 +289,7 @@ void Experiment::grid (NodeContainer c){
 void Experiment::square (NodeContainer c){
   double jump=0.5,jump1=0.5,jump2=0.5, jump3=0.5;
   uint size = c.GetN()/4;
-  std::cout<<size<<std::endl;
+  //std::cout<<size<<std::endl;
   for (uint n=0 ; n < c.GetN() ; n++)
    {
      //left vertical edge
@@ -383,7 +422,7 @@ switch (position)
     break;
   case 4:
     square (c);
-    std::cout<< "This is sqare topology"<<std::endl;
+    std::cout<< "This is square topology"<<std::endl;
     break;
   case 5:
     random (c);
@@ -421,7 +460,7 @@ switch (position)
      default:
        NS_FATAL_ERROR ("No such protocol:" << m_protocol);
      }
-
+     std::cout<< "This is "<<m_protocolName<<" protocol"<<std::endl;
    if (m_protocol < 3)
      {
        internet.SetRoutingHelper (list);
@@ -471,7 +510,7 @@ switch (position)
 
   CheckThroughput();
 
-  Simulator::Stop (Seconds (50.0));
+  Simulator::Stop (Seconds (100.0));
   AnimationInterface anim ("scratch/Dsr_project.xml");
   Simulator::Run ();
   for (auto itr = Experiment::packetsRecievedPerNode.begin(); itr != Experiment::packetsRecievedPerNode.end(); ++itr) {
