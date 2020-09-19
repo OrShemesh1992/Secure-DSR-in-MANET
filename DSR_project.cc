@@ -52,8 +52,6 @@ private:
   uint32_t packetSize; // bytes
   uint32_t numPackets;
   uint32_t numNodes;  // by default, 5x5
-  uint32_t destNode;
-  uint32_t sourceNode;
   map<int, int> packetsRecievedPerNode;
   double interval;// seconds
   std::string m_CSVfileName;
@@ -61,6 +59,10 @@ private:
   std::string m_protocolName;
   uint32_t m_protocol;
   int position;
+  vector<int> destNodes;
+  vector<int> sourceNodes;
+  std::vector<Ptr<Socket>> recieves;
+  std::vector<Ptr<Socket>> sources;
 
 
 
@@ -73,13 +75,13 @@ Experiment::Experiment (){
     packetSize = 1000; // bytes
     numPackets = 2000;
     numNodes = 50;  // by default, 5x5
-    destNode = 4;
-    sourceNode = 2;
     interval = 0.5; // seconds
     m_CSVfileName = "Dsr_project.csv";
     recvPackets = 0;
     m_protocol = 3; // 1-olsr, 2-aodv, 3-DSR
     position = 3; //1-lines, 2-circle, 3-grid, 4-square, 5 -random
+    destNodes = {1, 5 ,7 ,9};
+    sourceNodes = { 3, 6, 8, 10};
 }
 
 //writing data to the csv file
@@ -172,8 +174,6 @@ experiment.Run (CSVfileName);
 void Experiment::lines (NodeContainer c){
   double jump=0.5,jump1=0.2,jump2=0.5;
   uint size = (c.GetN())/3;
-  destNode = size*2;
-  sourceNode = size;
   for (uint n=0 ; n < c.GetN() ; n++){
      if(n < size){
       Ptr<ConstantVelocityMobilityModel> mob = c.Get(n)->GetObject<ConstantVelocityMobilityModel>();
@@ -439,34 +439,14 @@ switch (position)
   NS_LOG_INFO ("Assign IP Addresses.");
   ipv4.SetBase ("10.1.1.0", "255.255.255.0");
   Ipv4InterfaceContainer ip = ipv4.Assign (devices);
-//***************************END********************************
-//Working code!!!!!!!!!!!!!:
-//***************************socket********************************
-  // TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
-  // Ptr<Socket> recvSink = Socket::CreateSocket (c.Get (destNode), tid);
-  // InetSocketAddress local = InetSocketAddress (Ipv4Address::GetAny (), 80);
-  // recvSink->Bind (local);
-  // recvSink->SetRecvCallback (MakeCallback (&Experiment::ReceivePacket, this));
-  //
-  // Ptr<Socket> source = Socket::CreateSocket (c.Get (sourceNode), tid);
-  // InetSocketAddress remote = InetSocketAddress (i.GetAddress (destNode, 0), 80);
-  // source->Connect (remote);
-  // Give DSR time to converge-- 30 seconds perhaps
-//  Simulator::Schedule (Seconds (1.0), &GenerateTraffic,
-                //       source, packetSize, numPackets, interPacketInterval);
-//*****************End of working code*************************
 
 ///********************************try - see if works!!!
   InetSocketAddress local = InetSocketAddress (Ipv4Address::GetAny (), 80);
   TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
-  vector<int> destNodes{1, 5 ,7 ,9};
-  vector<int> sourceNodes{ 3, 6, 8, 10};
-  std::vector<Ptr<Socket>> recieves;
-  std::vector<Ptr<Socket>> sources;
+
   std::vector<InetSocketAddress> remotes;
   for (size_t i = 0; i < destNodes.size(); i++) {
     Ptr<Socket> recvSink = Socket::CreateSocket (c.Get (destNodes[i]), tid);
-    cout<<"******************************"<<ip.GetAddress (destNodes[i], 0)<<endl;
     recvSink->Bind (local);
     recvSink->SetRecvCallback (MakeCallback (&Experiment::ReceivePacket, this));
     recieves.push_back(recvSink);
@@ -481,7 +461,6 @@ switch (position)
   }
 //***************************END of try code***********************************
 
-std::cout<<sourceNode<<destNode<<endl;
 
   // Output what we are doing
 //  NS_LOG_UNCOND ("Testing from node " << sourceNode << " to " << destNode << " with grid distance " << distance);
