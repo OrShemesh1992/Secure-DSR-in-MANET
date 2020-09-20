@@ -220,10 +220,10 @@ int main (int argc, char *argv[])
    std::endl;
   string protocolName, topologyName;
   int sumOfPackets = 0;
-  for (size_t i = 1; i <= 3; i++) {
-    for (size_t j = 1; j <= 5; j++) {
+  for (size_t i = 1; i <= 3; i++) { // 1-olsr, 2-aodv, 3-DSR
+    for (size_t j = 1; j <= 5; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random
       size_t k = 0;
-      for (k = 0; k < 1; k++) {
+      for (k = 0; k < 5; k++) {
         Experiment experiment(i,j);
         protocolName = experiment.m_protocolName;
         topologyName = experiment.toplogyName;
@@ -239,6 +239,7 @@ int main (int argc, char *argv[])
        int sum = itr->second;
        sum = sum/k;
        sumOfPackets+=sum;
+       itr->second = 0;
      }
      int averagePacketsRecieved = sumOfPackets/packetsNumber.size();
      //writing to CSV file
