@@ -220,10 +220,10 @@ int main (int argc, char *argv[])
    std::endl;
   string protocolName, topologyName;
   int sumOfPackets = 0;
-  size_t k = 0;
-  for (size_t i = 1; i <= 1; i++) {
-    for (size_t j = 1; j <= 2; j++) {
-      for (k = 1; k <= 1; k++) {
+  for (size_t i = 1; i <= 3; i++) {
+    for (size_t j = 1; j <= 5; j++) {
+      size_t k = 0;
+      for (k = 0; k < 1; k++) {
         Experiment experiment(i,j);
         protocolName = experiment.m_protocolName;
         topologyName = experiment.toplogyName;
@@ -236,20 +236,18 @@ int main (int argc, char *argv[])
       }
    //making average packets per node and summing the average to calculate general average for all nodes
      for(auto itr = packetsNumber.begin() ; itr!= packetsNumber.end(); itr++){
-       int sum = itr->first;
-       sum/=k;
+       int sum = itr->second;
+       sum = sum/k;
        sumOfPackets+=sum;
      }
      int averagePacketsRecieved = sumOfPackets/packetsNumber.size();
      //writing to CSV file
-     cout <<protocolName << ", " <<
-     topologyName << ", "<<
-     averagePacketsRecieved <<
-      std::endl;
      out <<protocolName << ", " <<
      topologyName << ", "<<
      averagePacketsRecieved <<
       std::endl;
+      sumOfPackets =0;
+      averagePacketsRecieved = 0;
     }
   }
   out.close ();
