@@ -31,6 +31,8 @@ public:
 std::string m_protocolName;
 string toplogyName;
 std::string m_CSVfileName;
+map<int, int> packetsRecievedPerNode;
+
 Experiment (uint32_t protocol, uint32_t topology);
 void ReceivePacket (Ptr<Socket> socket);
 static void GenerateTraffic (Ptr<Socket> socket, uint32_t pktSize,
@@ -47,6 +49,7 @@ double randomDouble(double low, double high);
 void square (NodeContainer c);
 void random(NodeContainer c);
 void setNames();
+void setCSVFile();
 
 //members of the class
 private:
@@ -55,7 +58,6 @@ private:
   uint32_t packetSize; // bytes
   uint32_t numPackets;
   uint32_t numNodes;  // by default, 5x5
-  map<int, int> packetsRecievedPerNode;
   double interval;// seconds
   int recvPackets;
   uint32_t m_protocol;
@@ -64,6 +66,7 @@ private:
   vector<int> sourceNodes;
   std::vector<Ptr<Socket>> recieves;
   std::vector<Ptr<Socket>> sources;
+  string netAnimFileName;
 
 };
 
@@ -81,6 +84,8 @@ Experiment::Experiment (uint32_t protocol, uint32_t topology){
     destNodes = {1, 5 ,7 ,9};
     sourceNodes = { 3, 6, 8, 10};
     setNames();
+    setCSVFile();
+    netAnimFileName = "animations/" + m_protocolName + " " + toplogyName + ".xml";
 }
 
 //writing data to the csv file
@@ -121,6 +126,24 @@ void Experiment::setNames(){
       }
 }
 
+void Experiment::setCSVFile(){
+  string fileName = "statistics/"+ m_protocolName + " " + toplogyName+".csv";
+  m_CSVfileName = fileName;
+//writing the coloums to csv file
+  std::ofstream out (fileName.c_str ());
+  out << "seconds," <<
+  "NumberOfNodes," <<
+  "distance," ;
+  for (auto i: destNodes) {
+    out<< "PacketsForNode "<< i <<", ";
+  }
+  out<<"Number Of Packets per Node," <<
+  "Recieved Packets," <<
+  "Protocol," <<
+  std::endl;
+  out.close ();
+
+}
  void
  Experiment::CheckThroughput ()
  {
@@ -129,15 +152,18 @@ void Experiment::setNames(){
 
    out << (Simulator::Now ()).GetSeconds () << ","
        << numNodes << ","
-       << distance << ","
-       << numPackets << ","
+       << distance << ",";
+       for (auto i: destNodes) {
+         out<< packetsRecievedPerNode[i] <<",";
+       }
+       out<< numPackets << ","
        << recvPackets << ","
        << m_protocolName << ","
        << std::endl;
 
    out.close ();
    //packetsReceived = 0;
-   Simulator::Schedule (Seconds (1.0), &Experiment::CheckThroughput, this);
+//   Simulator::Schedule (Seconds (1.0), &Experiment::CheckThroughput, this);
  }
 
 //Receive packet
@@ -148,6 +174,7 @@ Experiment:: ReceivePacket (Ptr<Socket> socket)
      {
        int node = socket->GetNode()->GetId();
        packetsRecievedPerNode[node]++;
+       CheckThroughput();
        //std::cout <<node<< " received a packet" << '\n';
      }
 }
@@ -184,30 +211,49 @@ Experiment::CommandSetup (int argc, char **argv)
 
 int main (int argc, char *argv[])
 {
-  for (size_t i = 1; i <= 3; i++) {
-    for (size_t j = 1; j <= 5; j++) {
-      for (size_t k = 0; k < 1; k++) {
-    /* code */
-
+  map<int,int> packetsNumber;
+  string resultsSummary = "statistics/results Summary.csv";
+  std::ofstream out (resultsSummary.c_str ());
+  out <<"Protocol," <<
+  "Topology, " <<
+  "Average Packets Recieved"<<
+   std::endl;
+  string protocolName, topologyName;
+  int sumOfPackets = 0;
+  size_t k = 0;
+  for (size_t i = 1; i <= 1; i++) {
+    for (size_t j = 1; j <= 2; j++) {
+      for (k = 1; k <= 1; k++) {
         Experiment experiment(i,j);
-        //std::string CSVfileName = experiment.CommandSetup (argc,argv);
-        string fileName =  experiment.m_protocolName + " " + experiment.toplogyName+".csv";
-        experiment.m_CSVfileName = fileName;
-      //writing the coloums to csv file
-        std::ofstream out (fileName.c_str ());
-        out << "seconds," <<
-        "NumberOfNodes," <<
-        "distance," <<
-        "NumOfPackets," <<
-        "RecievedPackets," <<
-        "Protocol," <<
-        std::endl;
-        out.close ();
+        protocolName = experiment.m_protocolName;
+        topologyName = experiment.toplogyName;
+        string fileName =  "statistics/"+ experiment.m_protocolName + " " + experiment.toplogyName+".csv";
         experiment.Run (fileName);
-      //std::cout <<"round"<<i+1<<":  ***********************************" <<recvPackets << '\n';
+        //counting num of packets per run for each node
+        for(auto itr = experiment.packetsRecievedPerNode.begin() ; itr!= experiment.packetsRecievedPerNode.end(); itr++){
+          packetsNumber[itr->first]+=itr->second;
+        }
       }
+   //making average packets per node and summing the average to calculate general average for all nodes
+     for(auto itr = packetsNumber.begin() ; itr!= packetsNumber.end(); itr++){
+       int sum = itr->first;
+       sum/=k;
+       sumOfPackets+=sum;
+     }
+     int averagePacketsRecieved = sumOfPackets/packetsNumber.size();
+     //writing to CSV file
+     cout <<protocolName << ", " <<
+     topologyName << ", "<<
+     averagePacketsRecieved <<
+      std::endl;
+     out <<protocolName << ", " <<
+     topologyName << ", "<<
+     averagePacketsRecieved <<
+      std::endl;
     }
   }
+  out.close ();
+
 }
 
 void Experiment::lines (NodeContainer c){
@@ -508,10 +554,10 @@ switch (position)
   FlowMonitorHelper flowmonHelper;
   flowmon = flowmonHelper.InstallAll ();
 
-  CheckThroughput();
+//  CheckThroughput();
 
-  Simulator::Stop (Seconds (100.0));
-  AnimationInterface anim ("scratch/Dsr_project.xml");
+  Simulator::Stop (Seconds (30.0));
+  AnimationInterface anim (netAnimFileName);
   Simulator::Run ();
   for (auto itr = Experiment::packetsRecievedPerNode.begin(); itr != Experiment::packetsRecievedPerNode.end(); ++itr) {
           cout <<  "Number of packet received for node " << itr->first
