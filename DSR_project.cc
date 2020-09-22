@@ -67,8 +67,8 @@ private:
   std::vector<Ptr<Socket>> recieves;
   std::vector<Ptr<Socket>> sources;
   string netAnimFileName;
-  void changeRangeOnCircle(&double lowY, &double highY, int quarter);
-  void locateOnQuarter(&std::set<pair<double,double>> points, double limit, double lowX, double lowY, double highY, int quarter );
+  void changeRangeOnCircle(double &lowY, double &highY, int quarter);
+  void locateOnQuarter(set<pair<double,double>> &points, double limit, double lowX, double lowY, double highY, int quarter, int quarterSize, double center);
   void CircleWithLine (NodeContainer c);
 
 };
@@ -282,29 +282,29 @@ double Experiment::randomDouble(double low, double high){
   int range=(high-low)+1;
   return range * (rand() / (RAND_MAX + 1.0));
 }
-void Experiment::changeRangeOnCircle(&double lowY, &double highY, int quarter){
+void Experiment::changeRangeOnCircle(double& lowY, double& highY, int quarter){
     switch (quarter) {
       case 1: //lower left quarter or upper right quarter
-        lowY-=0.5
+        lowY-=0.5;
         highY-=0.5;
         break;
       case 2: //upper left quarter or lower right quarter
-        lowX+=0.5;
-        highX+=0.5;
+        lowY+=0.5;
+        highY+=0.5;
         break;
       default:
         cout<<"no such case in changeRangeOnCircle"<<endl;
     }
 }
-void Experiment::locateOnQuarter(&std::set<pair<double,double>> points, double limit, double lowX, double lowY, double highY, int quarter ){
+void Experiment::locateOnQuarter(set<pair<double,double>> &points, double limit, double lowX, double lowY, double highY, int quarter, int quarterSize, double center){
   double highX = lowX + 0.5;
-  for (size_t i = 0; i < Quarter && lowX < limit; i++) {
-    boolean onCircle = false;
+  for (int i = 0; i < quarterSize && lowX < limit; i++) {
+    bool onCircle = false;
     while(!onCircle){
       double x = randomDouble(lowX,highX);
       double y = randomDouble(lowY,highY);
       int res = circleEquasion(x,y,center);
-      if(res == radius*radius){
+      if(res == center*center){
         pair <double, double> p(x,y);
         points.insert(p);
         onCircle = true;
@@ -320,40 +320,39 @@ void Experiment::CircleWithLine (NodeContainer c) {
 // Circle equasion: (x-a)**2 + (y-b)**2 = R**2
   int size = c.GetN();
   int lineNodes = size/4;
-  int Quarter = (size-lineNodes)/4;
+  int quarterSize = (size-lineNodes)/4;
   double center = 2;
   double radius = center;
   std::set<pair<double,double>> points;
   double lowX = 0, lowY = center, highY = lowY - 0.5;
   //left half of circle
-  locateOnQuarter(points, center, lowX, lowY, highY, 1);//low half
-  locateOnQuarter(points, center, lowX, lowY, highY, 2);//high half
+  locateOnQuarter(points, center, lowX, lowY, highY, 1, quarterSize, center);//low half
+  locateOnQuarter(points, center, lowX, lowY, highY, 2, quarterSize, center);//high half
   lowX = center;
   lowY = 0;
   highY = lowY + 0.5;
   double limit = (radius*2)-0.8; // not to reach the left node al the way
-  locateOnQuarter(points, limit,lowX, lowY, highY, 2);//low half
+  locateOnQuarter(points, limit,lowX, lowY, highY, 2, quarterSize, center);//low half
   lowX = center;
   lowY = radius*2;
   highY = lowY + 0.5;
-  locateOnQuarter(points, limit,lowX, lowY, highY, 1);//high half
+  locateOnQuarter(points, limit,lowX, lowY, highY, 1, quarterSize, center);//high half
 
   //enter 3 nodes:  4, 4', and 4''
-  points.insert(new pair <double, double> {radius*2, radius } );
-  points.insert(new pair <double, double> {(radius*2)-0.2, radius + 0.2 } );
-  points.insert(new pair <double, double> {(radius*2)-0.2, radius - 0.2  } );
+  points.insert( pair <double, double> (radius*2, radius ) );
+  points.insert( pair <double, double> ((radius*2)-0.2, radius + 0.2 ) );
+  points.insert( pair <double, double> ((radius*2)-0.2, radius - 0.2   ) );
 
   int pointsSize = points.size();
   while(pointsSize<size){
     double x = randomDouble(0,lowY);
     double y = center;
     pair <double, double> p(x,y);
-    points.insert(p)
+    points.insert(p);
     pointsSize = points.size();
   }
   if(pointsSize == size){
     locateOnCircle(c, points);
-    setNotFull = false;
   }
 }
 void Experiment::grid (NodeContainer c){
@@ -618,7 +617,7 @@ int main (int argc, char *argv[])
   string protocolName, topologyName;
   int sumOfPackets = 0;
   for (size_t i = 1; i <= 3; i++) { // 1-olsr, 2-aodv, 3-DSR
-    for (size_t j = 1; j <= 5; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random
+    for (size_t j = 1; j <= 6; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine
       size_t k = 0;
       for (k = 0; k < 5; k++) {
         Experiment experiment(i,j);
