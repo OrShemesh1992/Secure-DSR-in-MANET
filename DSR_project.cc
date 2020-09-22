@@ -67,6 +67,9 @@ private:
   std::vector<Ptr<Socket>> recieves;
   std::vector<Ptr<Socket>> sources;
   string netAnimFileName;
+  void changeRangeOnCircle(&double lowY, &double highY, int quarter);
+  void locateOnQuarter(&std::set<pair<double,double>> points, double limit, double lowX, double lowY, double highY, int quarter );
+  void CircleWithLine (NodeContainer c);
 
 };
 
@@ -107,6 +110,8 @@ void Experiment::setNames(){
     case 5:
       toplogyName = "random";
       break;
+    case 6:
+    toplogyName = "CircleWithLine";
     default:
       NS_FATAL_ERROR ("No such pos:" << position);
     }
@@ -209,51 +214,6 @@ Experiment::CommandSetup (int argc, char **argv)
   return m_CSVfileName;
 }
 
-int main (int argc, char *argv[])
-{
-  map<int,int> packetsNumber;
-  string resultsSummary = "statistics/results Summary.csv";
-  std::ofstream out (resultsSummary.c_str ());
-  out <<"Protocol," <<
-  "Topology, " <<
-  "Average Packets Recieved"<<
-   std::endl;
-  string protocolName, topologyName;
-  int sumOfPackets = 0;
-  for (size_t i = 1; i <= 3; i++) { // 1-olsr, 2-aodv, 3-DSR
-    for (size_t j = 1; j <= 5; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random
-      size_t k = 0;
-      for (k = 0; k < 5; k++) {
-        Experiment experiment(i,j);
-        protocolName = experiment.m_protocolName;
-        topologyName = experiment.toplogyName;
-        string fileName =  "statistics/"+ experiment.m_protocolName + " " + experiment.toplogyName+".csv";
-        experiment.Run (fileName);
-        //counting num of packets per run for each node
-        for(auto itr = experiment.packetsRecievedPerNode.begin() ; itr!= experiment.packetsRecievedPerNode.end(); itr++){
-          packetsNumber[itr->first]+=itr->second;
-        }
-      }
-   //making average packets per node and summing the average to calculate general average for all nodes
-     for(auto itr = packetsNumber.begin() ; itr!= packetsNumber.end(); itr++){
-       int sum = itr->second;
-       sum = sum/k;
-       sumOfPackets+=sum;
-       itr->second = 0;
-     }
-     int averagePacketsRecieved = sumOfPackets/packetsNumber.size();
-     //writing to CSV file
-     out <<protocolName << ", " <<
-     topologyName << ", "<<
-     averagePacketsRecieved <<
-      std::endl;
-      sumOfPackets =0;
-      averagePacketsRecieved = 0;
-    }
-  }
-  out.close ();
-
-}
 
 void Experiment::lines (NodeContainer c){
   double jump=0.5,jump1=0.2,jump2=0.5;
@@ -322,8 +282,80 @@ double Experiment::randomDouble(double low, double high){
   int range=(high-low)+1;
   return range * (rand() / (RAND_MAX + 1.0));
 }
+void Experiment::changeRangeOnCircle(&double lowY, &double highY, int quarter){
+    switch (quarter) {
+      case 1: //lower left quarter or upper right quarter
+        lowY-=0.5
+        highY-=0.5;
+        break;
+      case 2: //upper left quarter or lower right quarter
+        lowX+=0.5;
+        highX+=0.5;
+        break;
+      default:
+        cout<<"no such case in changeRangeOnCircle"<<endl;
+    }
+}
+void Experiment::locateOnQuarter(&std::set<pair<double,double>> points, double limit, double lowX, double lowY, double highY, int quarter ){
+  double highX = lowX + 0.5;
+  for (size_t i = 0; i < Quarter && lowX < limit; i++) {
+    boolean onCircle = false;
+    while(!onCircle){
+      double x = randomDouble(lowX,highX);
+      double y = randomDouble(lowY,highY);
+      int res = circleEquasion(x,y,center);
+      if(res == radius*radius){
+        pair <double, double> p(x,y);
+        points.insert(p);
+        onCircle = true;
+        changeRangeOnCircle(lowY,highY, quarter);
+        lowX+=0.5;
+        highX+=0.5;
+      }
+    }
+  }
+}
 
+void Experiment::CircleWithLine (NodeContainer c) {
+// Circle equasion: (x-a)**2 + (y-b)**2 = R**2
+  int size = c.GetN();
+  int lineNodes = size/4;
+  int Quarter = (size-lineNodes)/4;
+  double center = 2;
+  double radius = center;
+  std::set<pair<double,double>> points;
+  double lowX = 0, lowY = center, highY = lowY - 0.5;
+  //left half of circle
+  locateOnQuarter(points, center, lowX, lowY, highY, 1);//low half
+  locateOnQuarter(points, center, lowX, lowY, highY, 2);//high half
+  lowX = center;
+  lowY = 0;
+  highY = lowY + 0.5;
+  double limit = (radius*2)-0.8; // not to reach the left node al the way
+  locateOnQuarter(points, limit,lowX, lowY, highY, 2);//low half
+  lowX = center;
+  lowY = radius*2;
+  highY = lowY + 0.5;
+  locateOnQuarter(points, limit,lowX, lowY, highY, 1);//high half
 
+  //enter 3 nodes:  4, 4', and 4''
+  points.insert(new pair <double, double> {radius*2, radius } );
+  points.insert(new pair <double, double> {(radius*2)-0.2, radius + 0.2 } );
+  points.insert(new pair <double, double> {(radius*2)-0.2, radius - 0.2  } );
+
+  int pointsSize = points.size();
+  while(pointsSize<size){
+    double x = randomDouble(0,lowY);
+    double y = center;
+    pair <double, double> p(x,y);
+    points.insert(p)
+    pointsSize = points.size();
+  }
+  if(pointsSize == size){
+    locateOnCircle(c, points);
+    setNotFull = false;
+  }
+}
 void Experiment::grid (NodeContainer c){
   for (uint n=0 ; n < c.GetN() ; n++)
    {
@@ -473,6 +505,9 @@ switch (position)
     random (c);
     std::cout<< "This is random topology"<<std::endl;
     break;
+  case 6:
+    CircleWithLine(c);
+    std::cout<< "This is circle with line topology"<<std::endl;
   default:
     NS_FATAL_ERROR ("No such pos:" << position);
   }
@@ -568,4 +603,51 @@ switch (position)
   flowmon->CheckForLostPackets();
   flowmon->SerializeToXmlFile("scratch/dsr-flow.xml", true, true);
   Simulator::Destroy ();
+}
+
+
+int main (int argc, char *argv[])
+{
+  map<int,int> packetsNumber;
+  string resultsSummary = "statistics/results Summary.csv";
+  std::ofstream out (resultsSummary.c_str ());
+  out <<"Protocol," <<
+  "Topology, " <<
+  "Average Packets Recieved"<<
+   std::endl;
+  string protocolName, topologyName;
+  int sumOfPackets = 0;
+  for (size_t i = 1; i <= 3; i++) { // 1-olsr, 2-aodv, 3-DSR
+    for (size_t j = 1; j <= 5; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random
+      size_t k = 0;
+      for (k = 0; k < 5; k++) {
+        Experiment experiment(i,j);
+        protocolName = experiment.m_protocolName;
+        topologyName = experiment.toplogyName;
+        string fileName =  "statistics/"+ experiment.m_protocolName + " " + experiment.toplogyName+".csv";
+        experiment.Run (fileName);
+        //counting num of packets per run for each node
+        for(auto itr = experiment.packetsRecievedPerNode.begin() ; itr!= experiment.packetsRecievedPerNode.end(); itr++){
+          packetsNumber[itr->first]+=itr->second;
+        }
+      }
+   //making average packets per node and summing the average to calculate general average for all nodes
+     for(auto itr = packetsNumber.begin() ; itr!= packetsNumber.end(); itr++){
+       int sum = itr->second;
+       sum = sum/k;
+       sumOfPackets+=sum;
+       itr->second = 0;
+     }
+     int averagePacketsRecieved = sumOfPackets/packetsNumber.size();
+     //writing to CSV file
+     out <<protocolName << ", " <<
+     topologyName << ", "<<
+     averagePacketsRecieved <<
+      std::endl;
+      sumOfPackets =0;
+      averagePacketsRecieved = 0;
+    }
+  }
+  out.close ();
+
 }
