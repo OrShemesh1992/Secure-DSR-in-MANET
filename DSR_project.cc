@@ -57,9 +57,13 @@ void setCSVFile();
 private:
   std::string phyMode = "DsssRate1Mbps";
   double distance; // m
+  double RX;
   uint32_t packetSize; // bytes
   uint32_t numPackets;
   uint32_t numNodes;  // by default, 5x5
+  double start_send_packet;
+  double time;
+  int count_CheckThroughput;
   double interval;// seconds
   int recvPackets;
   uint32_t m_protocol;
@@ -82,6 +86,10 @@ Experiment::Experiment (uint32_t protocol, uint32_t topology){
     interval = 0.5; // seconds
     //m_CSVfileName = "Dsr_project.csv";
     recvPackets = 0;
+    RX = -57;
+    start_send_packet=0;
+    time=0;
+    count_CheckThroughput=0;
     m_protocol = protocol; // 1-olsr, 2-aodv, 3-DSR
     position = topology; //1-lines, 2-circle, 3-grid, 4-square, 5 -random
     destNodes = {1, 5 ,7 ,9, 38};
@@ -142,10 +150,11 @@ void Experiment::setCSVFile(){
   "distance," ;
   for (auto i: destNodes) {
     out<< "PacketsForNode "<< i <<", ";
+    out<< "Lost Packets "<< i <<", ";
   }
-  out<<"Number Of Packets per Node," <<
+  out<<"Ratio,"<<"Number Of Packets per Node," <<
   "Recieved Packets," <<
-  "Protocol," <<
+  "Protocol," <<"Average time per packet,"<<
   std::endl;
   out.close ();
 
@@ -153,28 +162,38 @@ void Experiment::setCSVFile(){
  void
  Experiment::CheckThroughput ()
  {
-
+   count_CheckThroughput+=1;
    std::ofstream out (m_CSVfileName.c_str (), std::ios::app);
-
-   out << (Simulator::Now ()).GetSeconds () << ","
+   double countRecieved=0,countLost=0;
+   if(time==0){
+     time=(Simulator::Now ()).GetSeconds ();
+   }else{
+     start_send_packet=time;
+     time=(Simulator::Now ()).GetSeconds ();
+   }
+   out << time << ","
        << numNodes << ","
        << distance << ",";
        for (auto i: destNodes) {
+         countRecieved+=packetsRecievedPerNode[i];
+         countLost+=numPackets-packetsRecievedPerNode[i];
          out<< packetsRecievedPerNode[i] <<",";
+         out<<numPackets-packetsRecievedPerNode[i]<<",";
        }
-       out<< numPackets << ","
-       << recvPackets << ","
-       << m_protocolName << ","
-       << std::endl;
-
-   out.close ();
+      double Ratio=countRecieved/countLost;
+      double avg_time = time - start_send_packet;
+      out<< Ratio <<","<< numPackets << ","
+      << recvPackets << ","
+      << m_protocolName << ","
+      << avg_time/count_CheckThroughput << ","
+      << std::endl;
+      out.close ();
    //packetsReceived = 0;
 //   Simulator::Schedule (Seconds (1.0), &Experiment::CheckThroughput, this);
  }
 
 //Receive packet
-void
-Experiment:: ReceivePacket (Ptr<Socket> socket)
+void Experiment:: ReceivePacket (Ptr<Socket> socket)
 {
    while (socket->Recv ())
      {
@@ -243,24 +262,26 @@ void Experiment::lines (NodeContainer c){
 }
 
 void Experiment::circle (NodeContainer c) {
-// Circle equasion: (x-a)**2 + (y-b)**2 = R**2
-  bool setNotFull = true;
-  double center = 2, radius = 2;
-  int size = c.GetN(), low=0, high=4;
+  // Circle equasion: (x-a)**2 + (y-b)**2 = R**2
+  int size = c.GetN();
+  double pi = 2*asin(1.0), center = 5;
+  double radius = center;
   std::set<pair<double,double>> points;
-  while (setNotFull) {
-    double x = randomDouble(low,high);
-    double y = randomDouble(low,high);
-    int res = circleEquasion(x,y,center);
-    if(res == radius*radius){
-      pair <double, double> p(x,y);
-      points.insert(p);
-    }
-    int pointsSize = points.size();
-    if(pointsSize == size){
-      locateOnCircle(c, points);
-      setNotFull = false;
-    }
+  double x = 0, y = radius;
+  pair <double, double> p(x,y);
+  points.insert(p);
+  double alpha = 360/size;
+  double angle = alpha;
+  for (size_t i = 1; i < c.GetN(); i++)
+  {
+    x = radius - (radius*cos((angle*pi)/180));
+    y = radius + (radius*sin((angle*pi)/180));
+    points.insert(make_pair(x,y));
+    angle+=alpha;
+  }
+  int pointsSize = points.size();
+  if(pointsSize == size){
+    locateOnCircle(c, points);
   }
 }
 
@@ -287,6 +308,7 @@ double Experiment::randomDouble(double low, double high){
 
 void Experiment::CircleWithLine (NodeContainer c) {
 // Circle equasion: (x-a)**2 + (y-b)**2 = R**2
+  RX = -63;
   int size = c.GetN(), lineNodes = size/4, circumferenceSize = (size-lineNodes);
   double pi = 2*asin(1.0), center = 5;
   double radius = center;
@@ -461,7 +483,7 @@ switch (position)
 
     YansWifiPhyHelper wifiPhy =  YansWifiPhyHelper::Default ();
     // set it to zero; otherwise, gain will be added
-    wifiPhy.Set ("RxGain", DoubleValue (-63) );
+    wifiPhy.Set ("RxGain", DoubleValue (RX) );
     // ns-3 supports RadioTap and Prism tracing extensions for 802.11b
     wifiPhy.SetPcapDataLinkType (WifiPhyHelper::DLT_IEEE802_11_RADIO);
 
