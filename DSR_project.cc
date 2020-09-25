@@ -584,9 +584,9 @@ int main (int argc, char *argv[])
   string protocolName, topologyName;
   int sumOfPackets = 0;
   for (size_t i = 1; i <= 3; i++) { // 1-olsr, 2-aodv, 3-DSR
-    for (size_t j = 6; j <= 6; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine
+    for (size_t j = 1; j <= 6; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine
       size_t k = 0;
-      for (k = 4; k < 5; k++) {
+      for (k = 0; k < 5; k++) {
         Experiment experiment(i,j);
         protocolName = experiment.m_protocolName;
         topologyName = experiment.toplogyName;
