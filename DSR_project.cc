@@ -12,12 +12,14 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <math.h>
 #include "ns3/dsdv-module.h"
 #include "ns3/aodv-module.h"
 #include "ns3/olsr-module.h"
 #include "ns3/animation-interface.h"
 #include "ns3/point-to-point-module.h"
 #include "ns3/point-to-point-layout-module.h"
+
 using namespace ns3;
 using namespace std;
 
@@ -60,9 +62,6 @@ private:
   uint32_t numNodes;  // by default, 5x5
   double interval;// seconds
   int recvPackets;
-  double start_send_packet;
-  double time;
-  int count_CheckThroughput;
   uint32_t m_protocol;
   int position;
   vector<int> destNodes;
@@ -70,8 +69,6 @@ private:
   std::vector<Ptr<Socket>> recieves;
   std::vector<Ptr<Socket>> sources;
   string netAnimFileName;
-  void changeRangeOnCircle(double &lowY, double &highY, int quarter);
-  void locateOnQuarter(set<pair<double,double>> &points, double limit, double lowX, double lowY, double highY, int quarter, int quarterSize, double center);
   void CircleWithLine (NodeContainer c);
 
 };
@@ -80,18 +77,15 @@ private:
 Experiment::Experiment (uint32_t protocol, uint32_t topology){
     distance = 1000;  // m
     packetSize = 1000; // bytes
-    numPackets = 20;
-    numNodes = 50;  // by default, 5x5
+    numPackets = 2000;
+    numNodes = 40;  // by default, 5x5
     interval = 0.5; // seconds
     //m_CSVfileName = "Dsr_project.csv";
     recvPackets = 0;
     m_protocol = protocol; // 1-olsr, 2-aodv, 3-DSR
     position = topology; //1-lines, 2-circle, 3-grid, 4-square, 5 -random
-    start_send_packet=0;
-    time=0;
-    count_CheckThroughput=0;
-    destNodes = {1, 5 ,7 ,9};
-    sourceNodes = { 3, 6, 8, 10};
+    destNodes = {1, 5 ,7 ,9, 38};
+    sourceNodes = { 3, 6, 8, 10, 32};
     setNames();
     setCSVFile();
     netAnimFileName = "animations/" + m_protocolName + " " + toplogyName + ".xml";
@@ -117,7 +111,8 @@ void Experiment::setNames(){
       toplogyName = "random";
       break;
     case 6:
-    toplogyName = "CircleWithLine";
+      toplogyName = "CircleWithLine";
+      break;
     default:
       NS_FATAL_ERROR ("No such pos:" << position);
     }
@@ -147,11 +142,10 @@ void Experiment::setCSVFile(){
   "distance," ;
   for (auto i: destNodes) {
     out<< "PacketsForNode "<< i <<", ";
-    out<< "Lost Packets "<< i <<", ";
   }
-  out<<"Ratio,"<<"Number Of Packets per Node," <<
+  out<<"Number Of Packets per Node," <<
   "Recieved Packets," <<
-  "Protocol," <<"Average time per packet,"<<
+  "Protocol," <<
   std::endl;
   out.close ();
 
@@ -159,32 +153,21 @@ void Experiment::setCSVFile(){
  void
  Experiment::CheckThroughput ()
  {
-   count_CheckThroughput+=1;
+
    std::ofstream out (m_CSVfileName.c_str (), std::ios::app);
-   double countRecieved=0,countLost=0;
-   if(time==0){
-     time=(Simulator::Now ()).GetSeconds ();
-   }else{
-     start_send_packet=time;
-     time=(Simulator::Now ()).GetSeconds ();
-   }
-   out << time << ","
+
+   out << (Simulator::Now ()).GetSeconds () << ","
        << numNodes << ","
        << distance << ",";
        for (auto i: destNodes) {
-         countRecieved+=packetsRecievedPerNode[i];
-         countLost+=numPackets-packetsRecievedPerNode[i];
          out<< packetsRecievedPerNode[i] <<",";
-         out<<numPackets-packetsRecievedPerNode[i]<<",";
        }
-      double Ratio=countRecieved/countLost;
-      double avg_time = time - start_send_packet;
-      out<< Ratio <<","<< numPackets << ","
-      << recvPackets << ","
-      << m_protocolName << ","
-      << avg_time/count_CheckThroughput << ","
-      << std::endl;
-      out.close ();
+       out<< numPackets << ","
+       << recvPackets << ","
+       << m_protocolName << ","
+       << std::endl;
+
+   out.close ();
    //packetsReceived = 0;
 //   Simulator::Schedule (Seconds (1.0), &Experiment::CheckThroughput, this);
  }
@@ -296,77 +279,42 @@ void Experiment::locateOnCircle (NodeContainer c, std::set<pair<double,double>> 
   }
 }
 
+
 double Experiment::randomDouble(double low, double high){
   int range=(high-low)+1;
   return range * (rand() / (RAND_MAX + 1.0));
 }
-void Experiment::changeRangeOnCircle(double& lowY, double& highY, int quarter){
-    switch (quarter) {
-      case 1: //lower left quarter or upper right quarter
-        lowY-=0.5;
-        highY-=0.5;
-        break;
-      case 2: //upper left quarter or lower right quarter
-        lowY+=0.5;
-        highY+=0.5;
-        break;
-      default:
-        cout<<"no such case in changeRangeOnCircle"<<endl;
-    }
-}
-void Experiment::locateOnQuarter(set<pair<double,double>> &points, double limit, double lowX, double lowY, double highY, int quarter, int quarterSize, double center){
-  double highX = lowX + 0.5;
-  for (int i = 0; i < quarterSize && lowX < limit; i++) {
-    bool onCircle = false;
-    while(!onCircle){
-      double x = randomDouble(lowX,highX);
-      double y = randomDouble(lowY,highY);
-      int res = circleEquasion(x,y,center);
-      if(res == center*center){
-        pair <double, double> p(x,y);
-        points.insert(p);
-        onCircle = true;
-        changeRangeOnCircle(lowY,highY, quarter);
-        lowX+=0.5;
-        highX+=0.5;
-      }
-    }
-  }
-}
 
 void Experiment::CircleWithLine (NodeContainer c) {
 // Circle equasion: (x-a)**2 + (y-b)**2 = R**2
-  int size = c.GetN();
-  int lineNodes = size/4;
-  int quarterSize = (size-lineNodes)/4;
-  double center = 2;
+  int size = c.GetN(), lineNodes = size/4, circumferenceSize = (size-lineNodes);
+  double pi = 2*asin(1.0), center = 5;
   double radius = center;
   std::set<pair<double,double>> points;
-  double lowX = 0, lowY = center, highY = lowY - 0.5;
-  //left half of circle
-  locateOnQuarter(points, center, lowX, lowY, highY, 1, quarterSize, center);//low half
-  locateOnQuarter(points, center, lowX, lowY, highY, 2, quarterSize, center);//high half
-  lowX = center;
-  lowY = 0;
-  highY = lowY + 0.5;
-  double limit = (radius*2)-0.8; // not to reach the left node al the way
-  locateOnQuarter(points, limit,lowX, lowY, highY, 2, quarterSize, center);//low half
-  lowX = center;
-  lowY = radius*2;
-  highY = lowY + 0.5;
-  locateOnQuarter(points, limit,lowX, lowY, highY, 1, quarterSize, center);//high half
-
-  //enter 3 nodes:  4, 4', and 4''
-  points.insert( pair <double, double> (radius*2, radius ) );
-  points.insert( pair <double, double> ((radius*2)-0.2, radius + 0.2 ) );
-  points.insert( pair <double, double> ((radius*2)-0.2, radius - 0.2   ) );
-
+  double x = 0, y = radius;
+  pair <double, double> p(x,y);
+  points.insert(p);
+  double alpha = 360/circumferenceSize;
+  double angle = alpha;
+  double gap = (2*pi*radius*alpha)/360;
+//  double limitAngle = 160;
+  // && angle < limitAngle
+  while(angle<360) {
+    x = radius - (radius*cos((angle*pi)/180));
+    y = radius + (radius*sin((angle*pi)/180));
+    points.insert(make_pair(x,y));
+    angle+=alpha;
+  }
+  pair <double, double> p1(make_pair( (radius*2) - gap,radius) );
+  points.insert(p1);
+  points.insert(make_pair( gap,radius));
+  double lineGap = lineNodes/(radius*2);
+  y = center;
+  x = lineGap;
   int pointsSize = points.size();
   while(pointsSize<size){
-    double x = randomDouble(0,lowY);
-    double y = center;
-    pair <double, double> p(x,y);
-    points.insert(p);
+    points.insert(make_pair(x,y));
+    x+=lineGap;
     pointsSize = points.size();
   }
   if(pointsSize == size){
@@ -457,31 +405,7 @@ Experiment::Run (std::string CSVfileName)
   NodeContainer c;
   c.Create (numNodes);
 
-//***************************wifi*************************
-  // The below set of helpers will help us to put together the wifi NICs we want
-  WifiHelper wifi;
 
-  YansWifiPhyHelper wifiPhy =  YansWifiPhyHelper::Default ();
-  // set it to zero; otherwise, gain will be added
-  wifiPhy.Set ("RxGain", DoubleValue (-57) );
-  // ns-3 supports RadioTap and Prism tracing extensions for 802.11b
-  wifiPhy.SetPcapDataLinkType (WifiPhyHelper::DLT_IEEE802_11_RADIO);
-
-  YansWifiChannelHelper wifiChannel;
-  wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
-  wifiChannel.AddPropagationLoss ("ns3::FriisPropagationLossModel");
-  wifiPhy.SetChannel (wifiChannel.Create ());
-
-  // Add an upper mac and disable rate control
-  WifiMacHelper wifiMac;
-  wifi.SetStandard (WIFI_PHY_STANDARD_80211b);
-  wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
-                                "DataMode",StringValue (phyMode),
-                                "ControlMode",StringValue (phyMode));
-  // Set it to adhoc mode
-  wifiMac.SetType ("ns3::AdhocWifiMac");
-  NetDeviceContainer devices = wifi.Install (wifiPhy, wifiMac, c);
-  //***************************END**************************
 
 //***************************SetPosition*************************
 
@@ -525,12 +449,37 @@ switch (position)
   case 6:
     CircleWithLine(c);
     std::cout<< "This is circle with line topology"<<std::endl;
+    break;
   default:
     NS_FATAL_ERROR ("No such pos:" << position);
   }
 
   //***************************END********************************
+  //***************************wifi*************************
+    // The below set of helpers will help us to put together the wifi NICs we want
+    WifiHelper wifi;
 
+    YansWifiPhyHelper wifiPhy =  YansWifiPhyHelper::Default ();
+    // set it to zero; otherwise, gain will be added
+    wifiPhy.Set ("RxGain", DoubleValue (-63) );
+    // ns-3 supports RadioTap and Prism tracing extensions for 802.11b
+    wifiPhy.SetPcapDataLinkType (WifiPhyHelper::DLT_IEEE802_11_RADIO);
+
+    YansWifiChannelHelper wifiChannel;
+    wifiChannel.SetPropagationDelay ("ns3::ConstantSpeedPropagationDelayModel");
+    wifiChannel.AddPropagationLoss ("ns3::FriisPropagationLossModel");
+    wifiPhy.SetChannel (wifiChannel.Create ());
+
+    // Add an upper mac and disable rate control
+    WifiMacHelper wifiMac;
+    wifi.SetStandard (WIFI_PHY_STANDARD_80211b);
+    wifi.SetRemoteStationManager ("ns3::ConstantRateWifiManager",
+                                  "DataMode",StringValue (phyMode),
+                                  "ControlMode",StringValue (phyMode));
+    // Set it to adhoc mode
+    wifiMac.SetType ("ns3::AdhocWifiMac");
+    NetDeviceContainer devices = wifi.Install (wifiPhy, wifiMac, c);
+    //***************************END**************************
 
 //***************************DSR********************************
 
@@ -635,9 +584,9 @@ int main (int argc, char *argv[])
   string protocolName, topologyName;
   int sumOfPackets = 0;
   for (size_t i = 1; i <= 3; i++) { // 1-olsr, 2-aodv, 3-DSR
-    for (size_t j = 3; j <= 3; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine
+    for (size_t j = 6; j <= 6; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine
       size_t k = 0;
-      for (k = 0; k < 1; k++) {
+      for (k = 4; k < 5; k++) {
         Experiment experiment(i,j);
         protocolName = experiment.m_protocolName;
         topologyName = experiment.toplogyName;
@@ -666,4 +615,5 @@ int main (int argc, char *argv[])
     }
   }
   out.close ();
+
 }
