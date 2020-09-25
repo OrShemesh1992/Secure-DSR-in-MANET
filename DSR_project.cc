@@ -60,6 +60,9 @@ private:
   uint32_t numNodes;  // by default, 5x5
   double interval;// seconds
   int recvPackets;
+  double start_send_packet;
+  double time;
+  int count_CheckThroughput;
   uint32_t m_protocol;
   int position;
   vector<int> destNodes;
@@ -77,13 +80,16 @@ private:
 Experiment::Experiment (uint32_t protocol, uint32_t topology){
     distance = 1000;  // m
     packetSize = 1000; // bytes
-    numPackets = 2000;
+    numPackets = 20;
     numNodes = 50;  // by default, 5x5
     interval = 0.5; // seconds
     //m_CSVfileName = "Dsr_project.csv";
     recvPackets = 0;
     m_protocol = protocol; // 1-olsr, 2-aodv, 3-DSR
     position = topology; //1-lines, 2-circle, 3-grid, 4-square, 5 -random
+    start_send_packet=0;
+    time=0;
+    count_CheckThroughput=0;
     destNodes = {1, 5 ,7 ,9};
     sourceNodes = { 3, 6, 8, 10};
     setNames();
@@ -141,10 +147,11 @@ void Experiment::setCSVFile(){
   "distance," ;
   for (auto i: destNodes) {
     out<< "PacketsForNode "<< i <<", ";
+    out<< "Lost Packets "<< i <<", ";
   }
-  out<<"Number Of Packets per Node," <<
+  out<<"Ratio,"<<"Number Of Packets per Node," <<
   "Recieved Packets," <<
-  "Protocol," <<
+  "Protocol," <<"Average time per packet,"<<
   std::endl;
   out.close ();
 
@@ -152,21 +159,32 @@ void Experiment::setCSVFile(){
  void
  Experiment::CheckThroughput ()
  {
-
+   count_CheckThroughput+=1;
    std::ofstream out (m_CSVfileName.c_str (), std::ios::app);
-
-   out << (Simulator::Now ()).GetSeconds () << ","
+   double countRecieved=0,countLost=0;
+   if(time==0){
+     time=(Simulator::Now ()).GetSeconds ();
+   }else{
+     start_send_packet=time;
+     time=(Simulator::Now ()).GetSeconds ();
+   }
+   out << time << ","
        << numNodes << ","
        << distance << ",";
        for (auto i: destNodes) {
+         countRecieved+=packetsRecievedPerNode[i];
+         countLost+=numPackets-packetsRecievedPerNode[i];
          out<< packetsRecievedPerNode[i] <<",";
+         out<<numPackets-packetsRecievedPerNode[i]<<",";
        }
-       out<< numPackets << ","
-       << recvPackets << ","
-       << m_protocolName << ","
-       << std::endl;
-
-   out.close ();
+      double Ratio=countRecieved/countLost;
+      double avg_time = time - start_send_packet;
+      out<< Ratio <<","<< numPackets << ","
+      << recvPackets << ","
+      << m_protocolName << ","
+      << avg_time/count_CheckThroughput << ","
+      << std::endl;
+      out.close ();
    //packetsReceived = 0;
 //   Simulator::Schedule (Seconds (1.0), &Experiment::CheckThroughput, this);
  }
@@ -617,9 +635,9 @@ int main (int argc, char *argv[])
   string protocolName, topologyName;
   int sumOfPackets = 0;
   for (size_t i = 1; i <= 3; i++) { // 1-olsr, 2-aodv, 3-DSR
-    for (size_t j = 1; j <= 6; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine
+    for (size_t j = 3; j <= 3; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine
       size_t k = 0;
-      for (k = 0; k < 5; k++) {
+      for (k = 0; k < 1; k++) {
         Experiment experiment(i,j);
         protocolName = experiment.m_protocolName;
         topologyName = experiment.toplogyName;
@@ -648,5 +666,4 @@ int main (int argc, char *argv[])
     }
   }
   out.close ();
-
 }
