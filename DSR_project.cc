@@ -81,7 +81,7 @@ private:
 Experiment::Experiment (uint32_t protocol, uint32_t topology){
     distance = 1000;  // m
     packetSize = 1000; // bytes
-    numPackets = 2000;
+    numPackets = 200;
     numNodes = 40;  // by default, 5x5
     interval = 0.5; // seconds
     //m_CSVfileName = "Dsr_project.csv";
@@ -92,8 +92,8 @@ Experiment::Experiment (uint32_t protocol, uint32_t topology){
     count_CheckThroughput=0;
     m_protocol = protocol; // 1-olsr, 2-aodv, 3-DSR
     position = topology; //1-lines, 2-circle, 3-grid, 4-square, 5 -random
-    destNodes = {1, 5 ,7 ,9, 38};
-    sourceNodes = { 3, 6, 8, 10, 32};
+    destNodes = {36,37,39};
+    sourceNodes = {1, 4 , 5};
     setNames();
     setCSVFile();
     netAnimFileName = "animations/" + m_protocolName + " " + toplogyName + ".xml";
@@ -552,19 +552,24 @@ switch (position)
   TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
 
   std::vector<InetSocketAddress> remotes;
+    InetSocketAddress remote=InetSocketAddress (Ipv4Address::GetAny (), 80);;
   for (size_t i = 0; i < destNodes.size(); i++) {
     Ptr<Socket> recvSink = Socket::CreateSocket (c.Get (destNodes[i]), tid);
     recvSink->Bind (local);
     recvSink->SetRecvCallback (MakeCallback (&Experiment::ReceivePacket, this));
     recieves.push_back(recvSink);
-    Ptr<Socket> source = Socket::CreateSocket (c.Get (sourceNodes[i]), tid);
-    InetSocketAddress remote = InetSocketAddress (ip.GetAddress (destNodes[i], 0), 80);
+    remote = InetSocketAddress (ip.GetAddress (destNodes[i], 0), 80);
+
+  }
+  for (size_t j = 0; j < sourceNodes.size(); j++) {
+    Ptr<Socket> source = Socket::CreateSocket (c.Get (sourceNodes[j]), tid);
     source->Connect (remote);
     remotes.push_back(remote);
     sources.push_back(source);
-    // Give DSR time to converge-- 30 seconds perhaps
     Simulator::Schedule (Seconds (1.0), &GenerateTraffic,
-                         sources[i], packetSize, numPackets, interPacketInterval);
+                         sources[j], packetSize, numPackets, interPacketInterval);
+    // Give DSR time to converge-- 30 seconds perhaps
+
   }
 //***************************END of try code***********************************
 
@@ -606,7 +611,7 @@ int main (int argc, char *argv[])
   string protocolName, topologyName;
   int sumOfPackets = 0;
   for (size_t i = 1; i <= 3; i++) { // 1-olsr, 2-aodv, 3-DSR
-    for (size_t j = 1; j <= 6; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine
+    for (size_t j = 6; j <= 6; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine
       size_t k = 0;
       for (k = 0; k < 5; k++) {
         Experiment experiment(i,j);
@@ -637,5 +642,4 @@ int main (int argc, char *argv[])
     }
   }
   out.close ();
-
 }
