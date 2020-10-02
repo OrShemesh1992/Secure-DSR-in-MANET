@@ -34,6 +34,8 @@ std::string m_protocolName;
 string toplogyName;
 std::string m_CSVfileName;
 map<int, int> packetsRecievedPerNode;
+map<int, int> packetsLostPerNode;
+map<int, int> RatioPerNode;
 
 Experiment (uint32_t protocol, uint32_t topology);
 void ReceivePacket (Ptr<Socket> socket);
@@ -82,7 +84,7 @@ Experiment::Experiment (uint32_t protocol, uint32_t topology){
     distance = 1000;  // m
     packetSize = 1000; // bytes
     numPackets = 30;
-    numNodes = 40;  // by default, 5x5
+    numNodes = 50;  // by default, 5x5
     interval = 0.5; // seconds
     //m_CSVfileName = "Dsr_project.csv";
     recvPackets = 0;
@@ -92,7 +94,7 @@ Experiment::Experiment (uint32_t protocol, uint32_t topology){
     count_CheckThroughput=0;
     m_protocol = protocol; // 1-olsr, 2-aodv, 3-DSR
     position = topology; //1-lines, 2-circle, 3-grid, 4-square, 5 -random
-    destNodes = {36, 37, 39};
+    destNodes = {2,4,5};
     sourceNodes = {1,1,1};
     setNames();
     setCSVFile();
@@ -177,9 +179,14 @@ void Experiment::setCSVFile(){
        for (auto i: destNodes) {
          countRecieved+=packetsRecievedPerNode[i];
          countLost+=numPackets-packetsRecievedPerNode[i];
+         packetsLostPerNode[i]=numPackets-packetsRecievedPerNode[i];
          out<< packetsRecievedPerNode[i] <<",";
          out<<numPackets-packetsRecievedPerNode[i]<<",";
        }
+
+       for (auto i: destNodes) {
+         RatioPerNode[i] = packetsRecievedPerNode[i] - packetsLostPerNode[i];
+              }
       double Ratio=countRecieved/countLost;
       double avg_time = time - start_send_packet;
       out<< Ratio <<","<< numPackets << ","
@@ -599,18 +606,24 @@ switch (position)
 int main (int argc, char *argv[])
 {
   map<int,int> packetsNumber;
+  map<int,int> PacketsLostNumber;
+  map<int,int> RatioNumber;
   string resultsSummary = "statistics/results Summary.csv";
   std::ofstream out (resultsSummary.c_str ());
   out <<"Protocol," <<
   "Topology, " <<
-  "Average Packets Recieved"<<
+  "Average Packets Recieved, "<<
+  "Average Packets Lost, "<<
+  "Average Ratio, "<<
    std::endl;
   string protocolName, topologyName;
   int sumOfPackets = 0;
+  int sumOfLostPackets = 0;
+  int sumOfRatio = 0;
   for (size_t i = 1; i <= 3; i++) { // 1-olsr, 2-aodv, 3-DSR
     for (size_t j = 1; j <= 6; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine
       size_t k = 0;
-      for (k = 0; k < 5; k++) {
+      for (k = 0; k < 1; k++) {
         Experiment experiment(i,j);
         protocolName = experiment.m_protocolName;
         topologyName = experiment.toplogyName;
@@ -620,6 +633,14 @@ int main (int argc, char *argv[])
         for(auto itr = experiment.packetsRecievedPerNode.begin() ; itr!= experiment.packetsRecievedPerNode.end(); itr++){
           packetsNumber[itr->first]+=itr->second;
         }
+        //counting num of lost packets per run for each node
+        for(auto itr = experiment.packetsLostPerNode.begin() ; itr!= experiment.packetsLostPerNode.end(); itr++){
+          PacketsLostNumber[itr->first]+=itr->second;
+        }
+        //counting ratio per run for each node
+        for(auto itr = experiment.RatioPerNode.begin() ; itr!= experiment.RatioPerNode.end(); itr++){
+          RatioNumber[itr->first]+=itr->second;
+        }
       }
    //making average packets per node and summing the average to calculate general average for all nodes
      for(auto itr = packetsNumber.begin() ; itr!= packetsNumber.end(); itr++){
@@ -628,14 +649,40 @@ int main (int argc, char *argv[])
        sumOfPackets+=sum;
        itr->second = 0;
      }
+     //making average of lost packets per node and summing the average to calculate general average for all nodes
+     for(auto itr = PacketsLostNumber.begin() ; itr!= PacketsLostNumber.end(); itr++){
+       int sum = itr->second;
+       sum = sum/k;
+       sumOfLostPackets+=sum;
+       itr->second = 0;
+     }
+     //making average of ratio per node and summing the average to calculate general average for all nodes
+     for(auto itr = RatioNumber.begin() ; itr!= RatioNumber.end(); itr++){
+       int sum = itr->second;
+       sum = sum/k;
+       sumOfRatio+=sum;
+       itr->second = 0;
+     }
      int averagePacketsRecieved = sumOfPackets/packetsNumber.size();
+     int averagePacketsLost = sumOfLostPackets/PacketsLostNumber.size();
+     int averageRatio = sumOfRatio/RatioNumber.size();
+     std::cout << averagePacketsLost << '\n';
+        std::cout << averageRatio << '\n';
+
+
      //writing to CSV file
      out <<protocolName << ", " <<
      topologyName << ", "<<
-     averagePacketsRecieved <<
+     averagePacketsRecieved << ", "<<
+     averagePacketsLost<< ", "<<
+     averageRatio<< ", "<<
       std::endl;
-      sumOfPackets =0;
+      sumOfPackets = 0;
+      sumOfLostPackets = 0;
+      sumOfRatio = 0;
       averagePacketsRecieved = 0;
+      averagePacketsLost = 0;
+      averageRatio = 0;
     }
   }
   out.close ();
