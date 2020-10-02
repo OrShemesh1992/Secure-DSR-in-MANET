@@ -35,7 +35,7 @@ string toplogyName;
 std::string m_CSVfileName;
 map<int, int> packetsRecievedPerNode;
 map<int, int> packetsLostPerNode;
-map<int, int> RatioPerNode;
+map<int, double> RatioPerNode;
 
 Experiment (uint32_t protocol, uint32_t topology);
 void ReceivePacket (Ptr<Socket> socket);
@@ -61,7 +61,7 @@ private:
   double distance; // m
   double RX;
   uint32_t packetSize; // bytes
-  uint32_t numPackets;
+  double numPackets;
   uint32_t numNodes;  // by default, 5x5
   double start_send_packet;
   double time;
@@ -83,7 +83,7 @@ private:
 Experiment::Experiment (uint32_t protocol, uint32_t topology){
     distance = 1000;  // m
     packetSize = 1000; // bytes
-    numPackets = 30;
+    numPackets = 60;
     numNodes = 50;  // by default, 5x5
     interval = 0.5; // seconds
     //m_CSVfileName = "Dsr_project.csv";
@@ -94,7 +94,7 @@ Experiment::Experiment (uint32_t protocol, uint32_t topology){
     count_CheckThroughput=0;
     m_protocol = protocol; // 1-olsr, 2-aodv, 3-DSR
     position = topology; //1-lines, 2-circle, 3-grid, 4-square, 5 -random
-    destNodes = {2,4,5};
+    destNodes = { 45, 48, 49};
     sourceNodes = {1,1,1};
     setNames();
     setCSVFile();
@@ -185,9 +185,11 @@ void Experiment::setCSVFile(){
        }
 
        for (auto i: destNodes) {
-         RatioPerNode[i] = packetsRecievedPerNode[i] - packetsLostPerNode[i];
-              }
-      double Ratio=countRecieved/countLost;
+         RatioPerNode[i] = (packetsRecievedPerNode[i] / numPackets)*100;
+         //std::cout << RatioPerNode[i] << '\n';
+        }
+
+      double Ratio=(countRecieved/numPackets)*100;
       double avg_time = time - start_send_packet;
       out<< Ratio <<","<< numPackets << ","
       << recvPackets << ","
@@ -587,7 +589,7 @@ switch (position)
 
 //  CheckThroughput();
 
-  Simulator::Stop (Seconds (60.0));
+  Simulator::Stop (Seconds (30.0));
   AnimationInterface anim (netAnimFileName);
   Simulator::Run ();
   for (auto itr = Experiment::packetsRecievedPerNode.begin(); itr != Experiment::packetsRecievedPerNode.end(); ++itr) {
@@ -675,7 +677,7 @@ int main (int argc, char *argv[])
      topologyName << ", "<<
      averagePacketsRecieved << ", "<<
      averagePacketsLost<< ", "<<
-     averageRatio<< ", "<<
+     averageRatio<< "%" <<", "<<
       std::endl;
       sumOfPackets = 0;
       sumOfLostPackets = 0;
