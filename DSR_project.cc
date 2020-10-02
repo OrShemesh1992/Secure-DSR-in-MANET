@@ -97,7 +97,7 @@ Experiment::Experiment (uint32_t protocol, uint32_t topology){
     count_CheckThroughput=0;
     sumAvg = 0.0;
     m_protocol = protocol; // 1-olsr, 2-aodv, 3-DSR
-    position = topology; //1-lines, 2-circle, 3-grid, 4-square, 5 -random
+    position = topology; //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6 -circleWithLine
     destNodes = { 45, 48, 49};
     sourceNodes = {1,1,1};
     setNames();
@@ -633,7 +633,7 @@ int main (int argc, char *argv[])
   for (size_t i = 1; i <= 3; i++) { // 1-olsr, 2-aodv, 3-DSR
     for (size_t j = 1; j <= 6; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine
       size_t k = 0;
-      for (k = 0; k < 1; k++) {
+      for (k = 0; k < 5; k++) {
         Experiment experiment(i,j);
         protocolName = experiment.m_protocolName;
         topologyName = experiment.toplogyName;
