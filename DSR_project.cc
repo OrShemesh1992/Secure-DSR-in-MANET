@@ -36,9 +36,12 @@ std::string m_CSVfileName;
 map<int, int> packetsRecievedPerNode;
 map<int, int> packetsLostPerNode;
 map<int, double> RatioPerNode;
+map<int, double> ThroughputPerNode;
+map<int, double> BytesPerNode;
 map<int, double> timePerPacket;
 double sumAvg;
 int count_CheckThroughput;
+double simulationTime;
 
 
 Experiment (uint32_t protocol, uint32_t topology);
@@ -84,6 +87,7 @@ private:
 
 //initalize constructor
 Experiment::Experiment (uint32_t protocol, uint32_t topology){
+    simulationTime = 30.0;
     distance = 1000;  // m
     packetSize = 1000; // bytes
     numPackets = 60;
@@ -97,7 +101,7 @@ Experiment::Experiment (uint32_t protocol, uint32_t topology){
     count_CheckThroughput=0;
     sumAvg = 0.0;
     m_protocol = protocol; // 1-olsr, 2-aodv, 3-DSR
-    position = topology; //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6 -circleWithLine
+    position = topology; //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6 -circle
     destNodes = { 45, 48, 49};
     sourceNodes = {1,1,1};
     setNames();
@@ -192,6 +196,10 @@ void Experiment::setCSVFile(){
          RatioPerNode[i] = (packetsRecievedPerNode[i] / numPackets)*100;
          //std::cout << RatioPerNode[i] << '\n';
         }
+        for (auto i : destNodes) {
+        ThroughputPerNode[i] = (BytesPerNode[i]*8)/(simulationTime*1024*1024);
+        //std::cout << ThroughputPerNode[i] << '\n';
+        }
 
       double Ratio=(countRecieved/numPackets)*100;
       double avg_time = time - start_send_packet;
@@ -213,6 +221,7 @@ void Experiment:: ReceivePacket (Ptr<Socket> socket)
      {
        int node = socket->GetNode()->GetId();
        packetsRecievedPerNode[node]++;
+       BytesPerNode[node]+=packetSize;
        CheckThroughput();
        //std::cout <<node<< " received a packet" << '\n';
      }
@@ -594,7 +603,7 @@ switch (position)
 
 //  CheckThroughput();
 
-  Simulator::Stop (Seconds (30.0));
+  Simulator::Stop (Seconds (simulationTime));
   AnimationInterface anim (netAnimFileName);
   Simulator::Run ();
   for (auto itr = Experiment::packetsRecievedPerNode.begin(); itr != Experiment::packetsRecievedPerNode.end(); ++itr) {
@@ -615,6 +624,7 @@ int main (int argc, char *argv[])
   map<int,int> packetsNumber;
   map<int,int> PacketsLostNumber;
   map<int,int> RatioNumber;
+  map<int,double> Throughput;
   string resultsSummary = "statistics/results Summary.csv";
   std::ofstream out (resultsSummary.c_str ());
   out <<"Protocol," <<
@@ -623,15 +633,17 @@ int main (int argc, char *argv[])
   "Average Packets Lost, "<<
   "Average Ratio, "<<
   "Average Time Per Packet, "<<
+  "Throughput, "<<
    std::endl;
   string protocolName, topologyName;
   int sumOfPackets = 0;
   int sumOfLostPackets = 0;
   int sumOfRatio = 0;
+  double sumOfThroughput = 0.0;
   double sumAverage = 0.0;
   double totalPacketNumber = 0.0;
   for (size_t i = 1; i <= 3; i++) { // 1-olsr, 2-aodv, 3-DSR
-    for (size_t j = 1; j <= 6; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine
+    for (size_t j = 6; j <= 6; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine
       size_t k = 0;
       for (k = 0; k < 5; k++) {
         Experiment experiment(i,j);
@@ -650,6 +662,9 @@ int main (int argc, char *argv[])
         //counting ratio per run for each node
         for(auto itr = experiment.RatioPerNode.begin() ; itr!= experiment.RatioPerNode.end(); itr++){
           RatioNumber[itr->first]+=itr->second;
+        }
+        for(auto itr = experiment.ThroughputPerNode.begin() ; itr!= experiment.ThroughputPerNode.end(); itr++){
+          Throughput[itr->first]+=itr->second;
         }
         sumAverage = experiment.sumAvg;
         totalPacketNumber = experiment.count_CheckThroughput;
@@ -675,9 +690,19 @@ int main (int argc, char *argv[])
        sumOfRatio+=sum;
        itr->second = 0;
      }
+
+     for(auto itr = Throughput.begin() ; itr!= Throughput.end(); itr++){
+       double sum = itr->second;
+       sum = sum/k;
+       sumOfThroughput+=sum;
+       std::cout << sumOfThroughput << '\n';
+       itr->second = 0;
+     }
+
      int averagePacketsRecieved = sumOfPackets/packetsNumber.size();
      int averagePacketsLost = sumOfLostPackets/PacketsLostNumber.size();
      int averageRatio = sumOfRatio/RatioNumber.size();
+     double averageThroughput = sumOfThroughput/Throughput.size();
 
 
      //writing to CSV file
@@ -686,7 +711,8 @@ int main (int argc, char *argv[])
      averagePacketsRecieved << ", "<<
      averagePacketsLost<< ", "<<
      averageRatio<< "%" <<", "<<
-     sumAverage/totalPacketNumber<<", "<<
+     (sumAverage/totalPacketNumber)/k<<", "<<
+     averageThroughput<<", "<<
       std::endl;
       sumOfPackets = 0;
       sumOfLostPackets = 0;
@@ -694,6 +720,7 @@ int main (int argc, char *argv[])
       averagePacketsRecieved = 0;
       averagePacketsLost = 0;
       averageRatio = 0;
+      sumOfThroughput = 0.0;
     }
   }
   out.close ();
