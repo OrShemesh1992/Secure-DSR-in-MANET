@@ -435,7 +435,7 @@ void Experiment::random(NodeContainer c){
 }
 void Experiment::randomWalk(NodeContainer c ,MobilityHelper mobilityAdhoc){
     mobilityAdhoc.SetMobilityModel ("ns3::RandomWalk2dMobilityModel",
-                               "Bounds", RectangleValue (Rectangle (-50, 50, -25, 50)));
+                               "Bounds", RectangleValue (Rectangle (-1, 100, -1, 100)));
     mobilityAdhoc.Install (c);
 }
 void
@@ -655,8 +655,8 @@ int main (int argc, char *argv[])
   double sumOfThroughput = 0.0;
   double sumAverage = 0.0;
   double totalPacketNumber = 0.0;
-  for (size_t i = 1; i <= 3; i++) { // 1-olsr, 2-aodv, 3-DSR
-    for (size_t j = 6; j <= 7; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine , 7-randomWalk
+  for (size_t i = 3; i <= 3; i++) { // 1-olsr, 2-aodv, 3-DSR
+    for (size_t j = 7; j <= 7; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine , 7-randomWalk
       size_t k = 0;
       for (k = 0; k < 1; k++) {
         Experiment experiment(i,j);
