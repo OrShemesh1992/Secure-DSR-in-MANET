@@ -57,8 +57,10 @@ void grid (NodeContainer c);
 void locateOnCircle (NodeContainer c, std::set<pair<double,double>> points);
 double circleEquasion(double x, double y, double center);
 double randomDouble(double low, double high);
+
 void square (NodeContainer c);
 void random(NodeContainer c);
+void randomWalk(NodeContainer c ,MobilityHelper mobilityAdhoc);
 void setNames();
 void setCSVFile();
 
@@ -130,6 +132,9 @@ void Experiment::setNames(){
       break;
     case 6:
       toplogyName = "CircleWithLine";
+      break;
+    case 7:
+      toplogyName = "randomWalk";
       break;
     default:
       NS_FATAL_ERROR ("No such pos:" << position);
@@ -428,7 +433,11 @@ void Experiment::random(NodeContainer c){
     ind++;
   }
 }
-
+void Experiment::randomWalk(NodeContainer c ,MobilityHelper mobilityAdhoc){
+    mobilityAdhoc.SetMobilityModel ("ns3::RandomWalk2dMobilityModel",
+                               "Bounds", RectangleValue (Rectangle (-50, 50, -25, 50)));
+    mobilityAdhoc.Install (c);
+}
 void
 Experiment::Run (std::string CSVfileName)
 {
@@ -456,7 +465,7 @@ Experiment::Run (std::string CSVfileName)
 
 
 MobilityHelper mobilityAdhoc;
-
+if (position!=7){
 mobilityAdhoc.SetPositionAllocator ("ns3::GridPositionAllocator",
                              "MinX", DoubleValue (0.0),
                              "MinY", DoubleValue (0.0),
@@ -468,7 +477,7 @@ mobilityAdhoc.SetPositionAllocator ("ns3::GridPositionAllocator",
 mobilityAdhoc.SetMobilityModel ("ns3::ConstantVelocityMobilityModel");
 
 mobilityAdhoc.Install (c);
-
+}
 switch (position)
   {
   case 1:
@@ -494,6 +503,10 @@ switch (position)
   case 6:
     CircleWithLine(c);
     std::cout<< "This is circle with line topology"<<std::endl;
+    break;
+  case 7:
+    randomWalk(c,mobilityAdhoc);
+    std::cout<< "This is random Walk topology"<<std::endl;
     break;
   default:
     NS_FATAL_ERROR ("No such pos:" << position);
@@ -643,9 +656,9 @@ int main (int argc, char *argv[])
   double sumAverage = 0.0;
   double totalPacketNumber = 0.0;
   for (size_t i = 1; i <= 3; i++) { // 1-olsr, 2-aodv, 3-DSR
-    for (size_t j = 6; j <= 6; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine
+    for (size_t j = 6; j <= 7; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine , 7-randomWalk
       size_t k = 0;
-      for (k = 0; k < 5; k++) {
+      for (k = 0; k < 1; k++) {
         Experiment experiment(i,j);
         protocolName = experiment.m_protocolName;
         topologyName = experiment.toplogyName;
