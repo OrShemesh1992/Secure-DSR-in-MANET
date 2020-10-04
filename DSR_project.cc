@@ -40,8 +40,13 @@ map<int, double> ThroughputPerNode;
 map<int, double> BytesPerNode;
 map<int, double> timePerPacket;
 double sumAvg;
+double delaySum;
 int count_CheckThroughput;
 double simulationTime;
+double startSendingTime;
+double interval;// seconds
+double totalTimeToSendPackets;
+
 
 
 Experiment (uint32_t protocol, uint32_t topology);
@@ -74,7 +79,6 @@ private:
   uint32_t numNodes;  // by default, 5x5
   double start_send_packet;
   double time;
-  double interval;// seconds
   int recvPackets;
   uint32_t m_protocol;
   int position;
@@ -95,13 +99,16 @@ Experiment::Experiment (uint32_t protocol, uint32_t topology){
     numPackets = 60;
     numNodes = 50;  // by default, 5x5
     interval = 0.5; // seconds
+    startSendingTime = 1.0;
     //m_CSVfileName = "Dsr_project.csv";
     recvPackets = 0;
     RX = -57;
     start_send_packet=0;
     time=0;
-    count_CheckThroughput=0;
+    count_CheckThroughput = 0;
     sumAvg = 0.0;
+    totalTimeToSendPackets = 0.0;
+    delaySum = 0.0;
     m_protocol = protocol; // 1-olsr, 2-aodv, 3-DSR
     position = topology; //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6 -circle
     destNodes = { 45, 48, 49};
@@ -227,6 +234,10 @@ void Experiment:: ReceivePacket (Ptr<Socket> socket)
        int node = socket->GetNode()->GetId();
        packetsRecievedPerNode[node]++;
        BytesPerNode[node]+=packetSize;
+       double now = (Simulator::Now ()).GetSeconds ();
+       double packetSendTime = (interval*(packetsRecievedPerNode[node]-1)) + startSendingTime;
+       double delay = (now - packetSendTime);
+       delaySum += delay;
        CheckThroughput();
        //std::cout <<node<< " received a packet" << '\n';
      }
@@ -599,7 +610,7 @@ switch (position)
     source->Connect (remote);
     remotes.push_back(remote);
     sources.push_back(source);
-    Simulator::Schedule (Seconds (1.0), &GenerateTraffic,
+    Simulator::Schedule (Seconds (startSendingTime), &GenerateTraffic,
                          sources[i], packetSize, numPackets, interPacketInterval);
     // Give DSR time to converge-- 30 seconds perhaps
 
@@ -623,6 +634,12 @@ switch (position)
           cout <<  "Number of packet received for node " << itr->first
                << " is: " << itr->second << '\n';
     }
+  int sendingNodesSize = sourceNodes.size();
+  totalTimeToSendPackets /= (double) sendingNodesSize;
+  delaySum /= count_CheckThroughput;
+  time = (Simulator::Now ()).GetSeconds ();
+  totalTimeToSendPackets += (time - startSendingTime);
+
   flowmon->SetAttribute("DelayBinWidth", DoubleValue(0.01));
   flowmon->SetAttribute("JitterBinWidth", DoubleValue(0.01));
   flowmon->SetAttribute("PacketSizeBinWidth", DoubleValue(1));
@@ -647,6 +664,8 @@ int main (int argc, char *argv[])
   "Average Ratio, "<<
   "Average Time Per Packet, "<<
   "Throughput, "<<
+  "End To End Delay, "<<
+  "Average time to send all packets, "<<
    std::endl;
   string protocolName, topologyName;
   int sumOfPackets = 0;
@@ -655,10 +674,12 @@ int main (int argc, char *argv[])
   double sumOfThroughput = 0.0;
   double sumAverage = 0.0;
   double totalPacketNumber = 0.0;
-  for (size_t i = 3; i <= 3; i++) { // 1-olsr, 2-aodv, 3-DSR
-    for (size_t j = 7; j <= 7; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine , 7-randomWalk
+  double delaySum =0;
+  double timeToSendAllPackets = 0;
+  for (size_t i = 1; i <= 3; i++) { // 1-olsr, 2-aodv, 3-DSR
+    for (size_t j = 1; j <= 7; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine , 7-randomWalk
       size_t k = 0;
-      for (k = 0; k < 1; k++) {
+      for (k = 0; k < 5; k++) {
         Experiment experiment(i,j);
         protocolName = experiment.m_protocolName;
         topologyName = experiment.toplogyName;
@@ -681,6 +702,8 @@ int main (int argc, char *argv[])
         }
         sumAverage = experiment.sumAvg;
         totalPacketNumber = experiment.count_CheckThroughput;
+        delaySum += experiment.delaySum;
+        timeToSendAllPackets+= experiment.totalTimeToSendPackets;
       }
    //making average packets per node and summing the average to calculate general average for all nodes
      for(auto itr = packetsNumber.begin() ; itr!= packetsNumber.end(); itr++){
@@ -708,7 +731,6 @@ int main (int argc, char *argv[])
        double sum = itr->second;
        sum = sum/k;
        sumOfThroughput+=sum;
-       std::cout << sumOfThroughput << '\n';
        itr->second = 0;
      }
 
@@ -716,6 +738,8 @@ int main (int argc, char *argv[])
      int averagePacketsLost = sumOfLostPackets/PacketsLostNumber.size();
      int averageRatio = sumOfRatio/RatioNumber.size();
      double averageThroughput = sumOfThroughput/Throughput.size();
+     double endToEndDelay = delaySum/(double)k;
+     double avgTimeToSendAllPackets = timeToSendAllPackets/(double)k;
 
 
      //writing to CSV file
@@ -726,6 +750,8 @@ int main (int argc, char *argv[])
      averageRatio<< "%" <<", "<<
      (sumAverage/totalPacketNumber)/k<<", "<<
      averageThroughput<<", "<<
+     endToEndDelay<<", "<<
+     avgTimeToSendAllPackets<<", "<<
       std::endl;
       sumOfPackets = 0;
       sumOfLostPackets = 0;
@@ -734,6 +760,10 @@ int main (int argc, char *argv[])
       averagePacketsLost = 0;
       averageRatio = 0;
       sumOfThroughput = 0.0;
+      endToEndDelay = 0;
+      delaySum = 0;
+      avgTimeToSendAllPackets=0;
+      timeToSendAllPackets=0.0;
     }
   }
   out.close ();
