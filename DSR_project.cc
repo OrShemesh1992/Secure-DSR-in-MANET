@@ -46,6 +46,9 @@ double simulationTime;
 double startSendingTime;
 double interval;// seconds
 double totalTimeToSendPackets;
+double  numPackets;
+uint32_t numNodes;  // by default, 5x5
+
 
 
 
@@ -75,8 +78,6 @@ private:
   double distance; // m
   double RX;
   uint32_t packetSize; // bytes
-  double numPackets;
-  uint32_t numNodes;  // by default, 5x5
   double start_send_packet;
   double time;
   int recvPackets;
@@ -303,7 +304,7 @@ void Experiment::lines (NodeContainer c){
 void Experiment::circle (NodeContainer c) {
   // Circle equasion: (x-a)**2 + (y-b)**2 = R**2
   int size = c.GetN();
-  double pi = 2*asin(1.0), center = 5;
+  double pi = 2*asin(1.0), center = 6;
   double radius = center;
   std::set<pair<double,double>> points;
   double x = 0, y = radius;
@@ -349,7 +350,7 @@ void Experiment::CircleWithLine (NodeContainer c) {
 // Circle equasion: (x-a)**2 + (y-b)**2 = R**2
   RX = -63;
   int size = c.GetN(), lineNodes = size/4, circumferenceSize = (size-lineNodes);
-  double pi = 2*asin(1.0), center = 5;
+  double pi = 2*asin(1.0), center = 6;
   double radius = center;
   std::set<pair<double,double>> points;
   double x = 0, y = radius;
@@ -655,8 +656,9 @@ int main (int argc, char *argv[])
   map<int,int> PacketsLostNumber;
   map<int,int> RatioNumber;
   map<int,double> Throughput;
-  string resultsSummary = "statistics/results Summary.csv";
-  std::ofstream out (resultsSummary.c_str ());
+  //writing to CSV file
+  std::string resultsSummary = "statistics/results Summary 20 nodes.csv";
+  std::ofstream out(resultsSummary.c_str ());
   out <<"Protocol," <<
   "Topology, " <<
   "Average Packets Recieved, "<<
@@ -668,13 +670,8 @@ int main (int argc, char *argv[])
   "Average time to send all packets, "<<
    std::endl;
   string protocolName, topologyName;
-  int sumOfPackets = 0;
-  int sumOfLostPackets = 0;
-  int sumOfRatio = 0;
-  double sumOfThroughput = 0.0;
-  double sumAverage = 0.0;
-  double totalPacketNumber = 0.0;
-  double delaySum =0;
+  int sumOfPackets, sumOfLostPackets = 0, sumOfRatio = 0;
+  double sumOfThroughput = 0.0, sumAverage = 0.0, totalPacketNumber = 0.0, delaySum = 0.0;
   double timeToSendAllPackets = 0;
   for (size_t i = 1; i <= 3; i++) { // 1-olsr, 2-aodv, 3-DSR
     for (size_t j = 1; j <= 7; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine , 7-randomWalk
@@ -742,12 +739,15 @@ int main (int argc, char *argv[])
      double avgTimeToSendAllPackets = timeToSendAllPackets/(double)k;
 
 
-     //writing to CSV file
+
+
+
+
      out <<protocolName << ", " <<
      topologyName << ", "<<
      averagePacketsRecieved << ", "<<
      averagePacketsLost<< ", "<<
-     averageRatio<< "%" <<", "<<
+     averageRatio<< ", "<<
      (sumAverage/totalPacketNumber)/k<<", "<<
      averageThroughput<<", "<<
      endToEndDelay<<", "<<
