@@ -94,11 +94,11 @@ private:
 
 //initalize constructor
 Experiment::Experiment (uint32_t protocol, uint32_t topology){
-    simulationTime = 30.0;
+    simulationTime = 40.0;
     distance = 1000;  // m
     packetSize = 1000; // bytes
-    numPackets = 60;
-    numNodes = 50;  // by default, 5x5
+    numPackets = 50;
+    numNodes = 70;  // by default, 5x5
     interval = 0.5; // seconds
     startSendingTime = 1.0;
     //m_CSVfileName = "Dsr_project.csv";
@@ -112,8 +112,14 @@ Experiment::Experiment (uint32_t protocol, uint32_t topology){
     delaySum = 0.0;
     m_protocol = protocol; // 1-olsr, 2-aodv, 3-DSR
     position = topology; //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6 -circle
-    destNodes = { 45, 48, 49};
-    sourceNodes = {1,1,1};
+    int index = numNodes;
+    for(int i = 0; i<index; i+=2){
+      destNodes.push_back(i);
+      sourceNodes.push_back(i+1);
+      //index--;
+    }
+  //  destNodes = { 45, 48, 49};
+    //sourceNodes = {1,1,1};
     setNames();
     setCSVFile();
     netAnimFileName = "animations/" + m_protocolName + " " + toplogyName + ".xml";
@@ -304,7 +310,7 @@ void Experiment::lines (NodeContainer c){
 void Experiment::circle (NodeContainer c) {
   // Circle equasion: (x-a)**2 + (y-b)**2 = R**2
   int size = c.GetN();
-  double pi = 2*asin(1.0), center = 6;
+  double pi = 2*asin(1.0), center = 5;
   double radius = center;
   std::set<pair<double,double>> points;
   double x = 0, y = radius;
@@ -350,7 +356,7 @@ void Experiment::CircleWithLine (NodeContainer c) {
 // Circle equasion: (x-a)**2 + (y-b)**2 = R**2
   RX = -63;
   int size = c.GetN(), lineNodes = size/4, circumferenceSize = (size-lineNodes);
-  double pi = 2*asin(1.0), center = 6;
+  double pi = 2*asin(1.0), center = 5;
   double radius = center;
   std::set<pair<double,double>> points;
   double x = 0, y = radius;
@@ -657,7 +663,7 @@ int main (int argc, char *argv[])
   map<int,int> RatioNumber;
   map<int,double> Throughput;
   //writing to CSV file
-  std::string resultsSummary = "statistics/results Summary 20 nodes.csv";
+  std::string resultsSummary = "statistics/results Summary 70 nodes.csv";
   std::ofstream out(resultsSummary.c_str ());
   out <<"Protocol," <<
   "Topology, " <<
@@ -670,7 +676,7 @@ int main (int argc, char *argv[])
   "Average time to send all packets, "<<
    std::endl;
   string protocolName, topologyName;
-  int sumOfPackets, sumOfLostPackets = 0, sumOfRatio = 0;
+  int sumOfPackets, sumOfLostPackets = 0, sumOfRatio = 0 ;
   double sumOfThroughput = 0.0, sumAverage = 0.0, totalPacketNumber = 0.0, delaySum = 0.0;
   double timeToSendAllPackets = 0;
   for (size_t i = 1; i <= 3; i++) { // 1-olsr, 2-aodv, 3-DSR
