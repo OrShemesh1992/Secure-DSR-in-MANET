@@ -94,11 +94,11 @@ private:
 
 //initalize constructor
 Experiment::Experiment (uint32_t protocol, uint32_t topology){
-    simulationTime = 40.0;
+    simulationTime = 30.0;
     distance = 1000;  // m
     packetSize = 1000; // bytes
-    numPackets = 50;
-    numNodes = 70;  // by default, 5x5
+    numPackets = 70;
+    numNodes = 100;  // by default, 5x5
     interval = 0.5; // seconds
     startSendingTime = 1.0;
     //m_CSVfileName = "Dsr_project.csv";
@@ -110,14 +110,11 @@ Experiment::Experiment (uint32_t protocol, uint32_t topology){
     sumAvg = 0.0;
     totalTimeToSendPackets = 0.0;
     delaySum = 0.0;
-    m_protocol = protocol; // 1-olsr, 2-aodv, 3-DSR
-    position = topology; //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6 -circle
-    int index = numNodes;
-    for(int i = 0; i<index; i+=2){
-      destNodes.push_back(i);
-      sourceNodes.push_back(i+1);
-      //index--;
-    }
+    m_protocol = protocol; // 1-DSR, 2-aodv, 3-OLSR
+    position = topology; //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine , 7-randomWalk
+  //  int index = numNodes;
+    destNodes = {1 , 5 , 7 ,12 ,15, 13, 16};
+    sourceNodes = {19, 2, 14, 17, 8,6,18, 4};
   //  destNodes = { 45, 48, 49};
     //sourceNodes = {1,1,1};
     setNames();
@@ -156,13 +153,13 @@ void Experiment::setNames(){
     switch (m_protocol)
       {
         case 1:
-          m_protocolName = "OLSR";
+          m_protocolName = "DSR";
           break;
         case 2:
           m_protocolName = "AODV";
           break;
         case 3:
-          m_protocolName = "DSR";
+          m_protocolName = "OLSR";
           break;
         default:
           NS_FATAL_ERROR ("No such protocol:" << m_protocol);
@@ -569,26 +566,26 @@ switch (position)
    switch (m_protocol)
      {
      case 1:
-       list.Add (olsr, 100);
-       m_protocolName = "OLSR";
+       m_protocolName = "DSR";
        break;
      case 2:
        list.Add (aodv, 100);
        m_protocolName = "AODV";
        break;
      case 3:
-       m_protocolName = "DSR";
+       list.Add (olsr, 100);
+       m_protocolName = "OLSR";
        break;
      default:
        NS_FATAL_ERROR ("No such protocol:" << m_protocol);
      }
      std::cout<< "This is "<<m_protocolName<<" protocol"<<std::endl;
-   if (m_protocol < 3)
+   if (m_protocol > 1)
      {
        internet.SetRoutingHelper (list);
        internet.Install (c);
      }
-   else if (m_protocol == 3)
+   else if (m_protocol == 1)
      {
        internet.Install (c);
        dsrMain.Install (dsr, c);
@@ -663,7 +660,7 @@ int main (int argc, char *argv[])
   map<int,int> RatioNumber;
   map<int,double> Throughput;
   //writing to CSV file
-  std::string resultsSummary = "statistics/results Summary 70 nodes.csv";
+  std::string resultsSummary = "statistics/results Summary 100 nodes.csv";
   std::ofstream out(resultsSummary.c_str ());
   out <<"Protocol," <<
   "Topology, " <<
@@ -679,10 +676,10 @@ int main (int argc, char *argv[])
   int sumOfPackets, sumOfLostPackets = 0, sumOfRatio = 0 ;
   double sumOfThroughput = 0.0, sumAverage = 0.0, totalPacketNumber = 0.0, delaySum = 0.0;
   double timeToSendAllPackets = 0;
-  for (size_t i = 1; i <= 3; i++) { // 1-olsr, 2-aodv, 3-DSR
+  for (size_t i = 1; i <= 3; i++) { // 1-DSR, 2-aodv, 3-OLSR
     for (size_t j = 1; j <= 7; j++) {   //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine , 7-randomWalk
       size_t k = 0;
-      for (k = 0; k < 5; k++) {
+      for (k = 0; k < 3; k++) {
         Experiment experiment(i,j);
         protocolName = experiment.m_protocolName;
         topologyName = experiment.toplogyName;
