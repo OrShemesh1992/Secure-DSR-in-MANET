@@ -1,3 +1,4 @@
+
 #include "ns3/core-module.h"
 #include "ns3/mobility-module.h"
 #include "ns3/wifi-module.h"
@@ -50,8 +51,6 @@ double  numPackets;
 uint32_t numNodes;  // by default, 5x5
 
 
-
-
 Experiment (uint32_t protocol, uint32_t topology);
 void ReceivePacket (Ptr<Socket> socket);
 static void GenerateTraffic (Ptr<Socket> socket, uint32_t pktSize,
@@ -101,7 +100,6 @@ Experiment::Experiment (uint32_t protocol, uint32_t topology){
     numNodes = 100;  // by default, 5x5
     interval = 0.5; // seconds
     startSendingTime = 1.0;
-    //m_CSVfileName = "Dsr_project.csv";
     recvPackets = 0;
     RX = -57;
     start_send_packet=0;
@@ -112,11 +110,8 @@ Experiment::Experiment (uint32_t protocol, uint32_t topology){
     delaySum = 0.0;
     m_protocol = protocol; // 1-DSR, 2-aodv, 3-OLSR
     position = topology; //1-lines, 2-circle, 3-grid, 4-square, 5 -random, 6-CircleWithLine , 7-randomWalk
-  //  int index = numNodes;
     destNodes = {1 , 5 , 7 ,12 ,15, 13, 16};
     sourceNodes = {19, 2, 14, 17, 8,6,18, 4};
-  //  destNodes = { 45, 48, 49};
-    //sourceNodes = {1,1,1};
     setNames();
     setCSVFile();
     netAnimFileName = "animations/" + m_protocolName + " " + toplogyName + ".xml";
@@ -210,11 +205,9 @@ void Experiment::setCSVFile(){
 
        for (auto i: destNodes) {
          RatioPerNode[i] = (packetsRecievedPerNode[i] / numPackets)*100;
-         //std::cout << RatioPerNode[i] << '\n';
         }
         for (auto i : destNodes) {
         ThroughputPerNode[i] = (BytesPerNode[i]*8)/(simulationTime*1024*1024);
-        //std::cout << ThroughputPerNode[i] << '\n';
         }
 
       double Ratio=(countRecieved/numPackets)*100;
@@ -226,8 +219,6 @@ void Experiment::setCSVFile(){
       << avg_time << ","
       << std::endl;
       out.close ();
-   //packetsReceived = 0;
-//   Simulator::Schedule (Seconds (1.0), &Experiment::CheckThroughput, this);
  }
 
 //Receive packet
@@ -243,7 +234,6 @@ void Experiment:: ReceivePacket (Ptr<Socket> socket)
        double delay = (now - packetSendTime);
        delaySum += delay;
        CheckThroughput();
-       //std::cout <<node<< " received a packet" << '\n';
      }
 }
 
@@ -255,7 +245,6 @@ void Experiment:: GenerateTraffic (Ptr<Socket> socket, uint32_t pktSize,
     {
 
       Ptr<Packet> p = Create<Packet> (pktSize);
-      //std::cout << p->ToString()<<"check"<<std::endl;
       socket->Send (p);
       Simulator::Schedule (pktInterval, &GenerateTraffic,
                            socket, pktSize,pktCount - 1, pktInterval);
@@ -271,12 +260,11 @@ Experiment::CommandSetup (int argc, char **argv)
 {
   CommandLine cmd;
   cmd.AddValue ("CSVfileName", "The name of the CSV output file name", m_CSVfileName);
-  //cmd.AddValue ("traceMobility", "Enable mobility tracing", m_traceMobility);
-  //cmd.AddValue ("protocol", "1=OLSR;2=AODV;3=DSDV;4=DSR", m_protocol);
   cmd.Parse (argc, argv);
   return m_CSVfileName;
 }
 
+//**********************Topologies*********************
 
 void Experiment::lines (NodeContainer c){
   double jump=0.5,jump1=0.2,jump2=0.5;
@@ -396,7 +384,6 @@ void Experiment::grid (NodeContainer c){
 void Experiment::square (NodeContainer c){
   double jump=0.5,jump1=0.5,jump2=0.5, jump3=0.5;
   uint size = c.GetN()/4;
-  //std::cout<<size<<std::endl;
   for (uint n=0 ; n < c.GetN() ; n++)
    {
      //left vertical edge
@@ -437,7 +424,6 @@ void Experiment::random(NodeContainer c){
     double x = randomDouble(low,high), y = randomDouble(low,high);
     pair <double, double> p(x,y);
     points.insert(p);
-  //  int pointsSize = points.size();
     if(points.size() == c.GetN()) break;
   }
   int ind = 0;
@@ -453,6 +439,10 @@ void Experiment::randomWalk(NodeContainer c ,MobilityHelper mobilityAdhoc){
                                "Bounds", RectangleValue (Rectangle (-1, 100, -1, 100)));
     mobilityAdhoc.Install (c);
 }
+
+//**********************End of Topologies*********************/
+
+
 void
 Experiment::Run (std::string CSVfileName)
 {
@@ -474,10 +464,7 @@ Experiment::Run (std::string CSVfileName)
   NodeContainer c;
   c.Create (numNodes);
 
-
-
 //***************************SetPosition*************************
-
 
 MobilityHelper mobilityAdhoc;
 if (position!=7){
@@ -527,7 +514,8 @@ switch (position)
     NS_FATAL_ERROR ("No such pos:" << position);
   }
 
-  //***************************END********************************
+  //***************************END of SetPosition********************************
+
   //***************************wifi*************************
     // The below set of helpers will help us to put together the wifi NICs we want
     WifiHelper wifi;
@@ -554,7 +542,7 @@ switch (position)
     NetDeviceContainer devices = wifi.Install (wifiPhy, wifiMac, c);
     //***************************END**************************
 
-//***************************DSR********************************
+//***************************Protocols*******************************
 
    AodvHelper aodv;
    OlsrHelper olsr;
@@ -598,7 +586,7 @@ switch (position)
   ipv4.SetBase ("10.1.1.0", "255.255.255.0");
   Ipv4InterfaceContainer ip = ipv4.Assign (devices);
 
-///********************************try - see if works!!!
+
   InetSocketAddress local = InetSocketAddress (Ipv4Address::GetAny (), 80);
   TypeId tid = TypeId::LookupByName ("ns3::UdpSocketFactory");
 
@@ -616,20 +604,12 @@ switch (position)
     sources.push_back(source);
     Simulator::Schedule (Seconds (startSendingTime), &GenerateTraffic,
                          sources[i], packetSize, numPackets, interPacketInterval);
-    // Give DSR time to converge-- 30 seconds perhaps
-
-  }
-//***************************END of try code***********************************
-
-
-  // Output what we are doing
-//  NS_LOG_UNCOND ("Testing from node " << sourceNode << " to " << destNode << " with grid distance " << distance);
+}
 
   Ptr<FlowMonitor> flowmon;
   FlowMonitorHelper flowmonHelper;
   flowmon = flowmonHelper.InstallAll ();
 
-//  CheckThroughput();
 
   Simulator::Stop (Seconds (simulationTime));
   AnimationInterface anim (netAnimFileName);
@@ -697,6 +677,8 @@ int main (int argc, char *argv[])
         for(auto itr = experiment.RatioPerNode.begin() ; itr!= experiment.RatioPerNode.end(); itr++){
           RatioNumber[itr->first]+=itr->second;
         }
+
+        //counting throughput per run for each node
         for(auto itr = experiment.ThroughputPerNode.begin() ; itr!= experiment.ThroughputPerNode.end(); itr++){
           Throughput[itr->first]+=itr->second;
         }
@@ -727,6 +709,7 @@ int main (int argc, char *argv[])
        itr->second = 0;
      }
 
+     //making average of throughput per node and summing the average to calculate general average for all nodes
      for(auto itr = Throughput.begin() ; itr!= Throughput.end(); itr++){
        double sum = itr->second;
        sum = sum/k;
@@ -740,10 +723,6 @@ int main (int argc, char *argv[])
      double averageThroughput = sumOfThroughput/Throughput.size();
      double endToEndDelay = delaySum/(double)k;
      double avgTimeToSendAllPackets = timeToSendAllPackets/(double)k;
-
-
-
-
 
 
      out <<protocolName << ", " <<
